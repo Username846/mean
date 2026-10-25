@@ -454,6 +454,55 @@ TRACKS = {
 }
 
 
+def echo_loop(x, delay, fb, taps=4):
+    """Feedback echo that wraps around, so a loop stays seamless."""
+    out = x.copy()
+    d = int(delay * SR)
+    for k in range(1, taps + 1):
+        out += np.roll(x, d * k) * fb ** k
+    return out
+
+
+def waiting_room():
+    """Hospital waiting room: a low beating drone, a dissonant high whine that
+    swells and fades, and a wall clock ticking every second (16 s loop)."""
+    dur = 16.0
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    q = lambda f: round(f * dur) / dur  # whole cycles per loop: no seam click
+    buf = np.sin(2 * np.pi * q(mtof(38)) * t) * 0.32 + np.sin(2 * np.pi * q(mtof(38) * 1.012) * t) * 0.28
+    buf += np.sin(2 * np.pi * q(mtof(26)) * t) * 0.25
+    swell = np.sin(np.pi * t / dur) ** 2
+    buf += (np.sin(2 * np.pi * q(mtof(77)) * t) + np.sin(2 * np.pi * q(mtof(78)) * t)) * 0.035 * swell
+    for s in range(16):
+        add(buf, tone("square", 96 if s % 2 == 0 else 91, 0.012, 0.22, a=0.0005, d=0.01, s=0.0, r=0.002), s)
+    for s in (0.0, 8.0):
+        add(buf, kick(0.35), s + 0.05)
+        add(buf, kick(0.25), s + 0.3)
+    return echo_loop(buf, 0.23, 0.3)
+
+
+def dirge():
+    """Slow D-minor organ chords with a tolling bell melody (32 s loop)."""
+    dur = 32.0
+    buf = np.zeros(int(dur * SR))
+    chords = [(38, [50, 53, 57]), (34, [46, 50, 53]), (31, [43, 46, 50]), (33, [45, 49, 52])]
+    melody = [[(69, 2), (65, 2)], [(70, 2), (69, 1), (65, 1)], [(67, 2), (62, 2)], [(64, 2), (61, 2)],
+              [(69, 2), (74, 2)], [(72, 2), (70, 1), (69, 1)], [(67, 3), (70, 1)], [(69, 2), (64, 2)]]
+    for bar in range(8):
+        bass, notes = chords[bar % 4]
+        start = bar * 4.0
+        for m in notes:
+            wrap_add(buf, tone("organ", m, 4.6, 0.12, a=0.7, d=0.6, s=0.8, r=1.2), start)
+        wrap_add(buf, tone("sine", bass, 4.6, 0.3, a=0.4, d=0.5, s=0.8, r=1.2), start)
+        wrap_add(buf, tone("bell", bass + 12, 3.5, 0.18, a=0.003, d=2.5, s=0.1, r=1.0), start)
+        at = start
+        for m, beats in melody[bar]:
+            wrap_add(buf, tone("bell", m, beats + 0.8, 0.2, a=0.004, d=beats * 0.6, s=0.25, r=0.6), at)
+            at += beats
+    return echo_loop(buf, 0.37, 0.35, taps=5)
+
+
 def write_ogg(name, data):
     os.makedirs(OUT, exist_ok=True)
     pcm = (np.clip(data, -1, 1) * 32767).astype(np.int16)
@@ -474,3 +523,6 @@ def write_ogg(name, data):
 if __name__ == "__main__":
     for name, spec in TRACKS.items():
         write_ogg(name, Track(spec).render())
+    for name, fn in (("waiting", waiting_room), ("grave", dirge)):
+        data = fn()
+        write_ogg(name, data / (np.max(np.abs(data)) + 1e-9) * 0.8)

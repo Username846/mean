@@ -42,14 +42,14 @@ Each location also hides one way to *seriously* hurt him by accident. That sets 
 
 Bonus: during the ambulance ride, tap one of its wheels.
 
-**After all 10:** he gets his revenge and trashes your room (RIP, LEGO castle). Then you sneak out at night and buy a **9mm pistol** from a shady dealer. From then on, every location has a pistol button in the bottom-right. Equip it and tap him for the Code Red emergency and an Intensive Care stay.
+**After all 10:** he gets his revenge and trashes your room (RIP, LEGO castle). Then you sneak out at night and buy a **9mm pistol** from a shady dealer. From then on, every location has a pistol button in the bottom-right. Equip it and tap him for the Code Red emergency. This time he doesn't make it: the family waits outside surgery, the doctor comes out to say he's sorry, and it ends at his grave.
 
 </details>
 
 ## Audio
 
-* **Synthesized voices:** all 113 voice lines (the brother, you, an announcer, Mom, a paramedic, a doctor and a shady dealer) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
-* **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu, the hospital, the cutscenes and the ending (15 in total).
+* **Synthesized voices:** all 114 voice lines (the brother, you, an announcer, Mom, a paramedic, a doctor and a shady dealer) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
+* **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu, the hospital, the cutscenes and the ending (17 in total).
 * **Sound effects:** 61 procedurally generated sounds (splats, splashes, boings, sirens and, yes, a whoopee cushion).
 
 Audio starts after your first click or tap, because browsers require that. On iPhone, the ring/silent switch has to be on ring to hear web audio. iPhone Safari doesn't support fullscreen for web pages, so the Fullscreen button is hidden there.

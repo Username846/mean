@@ -130,8 +130,9 @@ LINES = {
     "blasted": ("bro", "Aaaah! I've been shot!", "AAAAH! I'VE BEEN SHOT!"),
     "whathaveyoudone": ("you", "Oh no. What have you done?", "Oh no... what have you DONE?!"),
     "code_red": ("you", "Code red! Code red!", "CODE RED! CODE RED!"),
-    "doctor_serious": ("doc", "This is serious. He has to stay in intensive care for a while.", "DOCTOR: This is serious. He has to stay in intensive care for a while."),
-    "hosp_serious": ("bro", "Who sells guns to kids on street corners anyway?", "Who sells GUNS to KIDS on street corners anyway?!"),
+    "mom_please": ("mom", "Please. Please let him be okay.", "MOM: Please... please let him be okay..."),
+    "doctor_sorry": ("doc", "I'm sorry. We did everything we could.", "DOCTOR: I'm sorry... We did everything we could."),
+    "kid_sorry": ("kid", "I'm sorry. I didn't mean it.", "YOU: I'm sorry... I didn't mean it..."),
     # --- mom
     "mom_stop": ("mom", "Kids! Play nice!", "MOM: Kids! Play nice!"),
     "mom_dinner": ("mom", "Dinner's ready!", "MOM: Dinner's ready!"),
