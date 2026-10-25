@@ -21,6 +21,7 @@ var grab_off := Vector2.ZERO
 var tool := "hand"
 var stun := 0.0
 var stand := 1.0
+var stand_x := 640.0
 var dizzy := 0.0
 var tickle := 0.0
 var tickle_reward := 0.0
@@ -50,13 +51,10 @@ func idle_lines() -> Array:
 func setup() -> void:
 	bro = spawn_bro(Vector2(640, 600))
 	bro.visible = false
-	var base := Vector2(640, FLOOR)
-	var rest := [Vector2(0, -241), Vector2(0, -191), Vector2(0, -96), Vector2(-34, -150),
-		Vector2(-40, -106), Vector2(34, -150), Vector2(40, -106), Vector2(-16, -50),
-		Vector2(-22, -16), Vector2(16, -50), Vector2(22, -16)]
-	for p in rest:
-		pos.append(base + p)
-		prev.append(base + p)
+	var rest := _pose(640.0)
+	for i in RADII.size():
+		pos.append(rest[i])
+		prev.append(rest[i])
 	_build_toolbar()
 	hint_label.visible = false
 
@@ -85,6 +83,23 @@ func _select_tool(t: String) -> void:
 
 
 func debug_state(n: int) -> void:
+	if n == 4:
+		# test hook: hurl him at the right wall, then trace the recovery
+		for i in pos.size():
+			prev[i] = pos[i] - Vector2(30, 12)
+		stun = 1.5
+		debug_state(3)
+	if n == 3:
+		# test hook: log his motion while nobody touches him
+		var tm := Timer.new()
+		tm.wait_time = 0.5
+		tm.autostart = true
+		tm.timeout.connect(func():
+			var sp := 0.0
+			for i in pos.size():
+				sp += (pos[i] - prev[i]).length()
+			print("TRACE t=%.1f pelvis=(%.0f,%.0f) head=(%.0f,%.0f) speed=%.1f stun=%.2f rage=%.0f" % [time, pos[PELVIS].x, pos[PELVIS].y, pos[HEAD].x, pos[HEAD].y, sp, stun, rage]))
+		add_child(tm)
 	if n == 1:
 		for i in pos.size():
 			pos[i] += Vector2(-200, -150)
@@ -219,25 +234,37 @@ func _constrain(a: int, b: int, length: float) -> void:
 		pos[b] -= d * diff * 0.5
 
 
-func _muscles(h: float) -> void:
+## Pulls him back into a standing pose around `stand_x`. Moves pos and prev
+## together, so it repositions him without adding any velocity; it also bleeds
+## off leftover motion. (Pushing pos alone pumped energy in and made him lurch.)
+func _muscles(_h: float) -> void:
 	if grabbed >= 0 or stun > 0 or tickle > 0.2:
 		return
-	var k := 0.045 * stand
-	var px := pos[PELVIS].x
-	var sway := sin(time * 1.3) * 4.0
-	var base := FLOOR
-	var targets := {
-		PELVIS: Vector2(px, base - 96), NECK: Vector2(px + sway, base - 191),
-		HEAD: Vector2(px + sway * 1.5, base - 241), LKN: Vector2(px - 16, base - 50),
-		RKN: Vector2(px + 16, base - 50), LFT: Vector2(px - 22, base - 16), RFT: Vector2(px + 22, base - 16),
-		LEL: Vector2(px - 36 + sway, base - 150), REL: Vector2(px + 36 + sway, base - 150),
-		LHA: Vector2(px - 42, base - 106), RHA: Vector2(px + 42, base - 106),
-	}
-	if bro.mood == "angry" or rage > 80:
-		targets[LHA] = Vector2(px - 30, base - 140)
-		targets[RHA] = Vector2(px + 30, base - 140)
+	var k := 0.07 * stand * stand
+	var damp := 0.12 * stand
+	var targets := _pose(stand_x, sin(time * 1.3) * 3.0, bro.mood == "angry" or rage > 80)
 	for i in targets:
-		pos[i] += (targets[i] - pos[i]) * k
+		var d: Vector2 = (targets[i] - pos[i]) * k
+		pos[i] += d
+		prev[i] += d
+		prev[i] = prev[i].lerp(pos[i], damp)
+
+
+## Standing pose. Joint distances match the STICKS lengths exactly, so the
+## muscles never fight the skeleton (a mismatch made him jitter and topple).
+func _pose(px: float, sway := 0.0, fists := false) -> Dictionary:
+	var f := FLOOR
+	var pose := {
+		PELVIS: Vector2(px, f - 110), NECK: Vector2(px + sway, f - 205), HEAD: Vector2(px + sway, f - 255),
+		LKN: Vector2(px - 16, f - 61), RKN: Vector2(px + 16, f - 61),
+		LFT: Vector2(px - 26, f - 16), RFT: Vector2(px + 26, f - 16),
+		LEL: Vector2(px - 30 + sway, f - 170), REL: Vector2(px + 30 + sway, f - 170),
+		LHA: Vector2(px - 36, f - 127), RHA: Vector2(px + 36, f - 127),
+	}
+	if fists:
+		pose[LHA] = Vector2(px - 44, f - 210)
+		pose[RHA] = Vector2(px + 44, f - 210)
+	return pose
 
 
 func _collide() -> void:
@@ -249,7 +276,7 @@ func _collide() -> void:
 			hit = maxf(hit, v.y)
 			pos[i].y = FLOOR - r
 			prev[i].y = pos[i].y + v.y * 0.35
-			prev[i].x = pos[i].x - v.x * 0.75
+			prev[i].x = pos[i].x - v.x * 0.5
 		if pos[i].y < 60 + r:
 			hit = maxf(hit, -v.y)
 			pos[i].y = 60 + r
@@ -325,8 +352,16 @@ func tick(dt: float) -> void:
 		speed += (pos[i] - prev[i]).length()
 	if grabbed < 0 and speed < 3.0:
 		stun -= dt
-	if stun <= 0:
-		stand = minf(1.0, stand + dt * 0.7)
+	if stun > 0:
+		stand = 0.0
+	else:
+		if stand == 0.0:
+			# get up where he lies, but never pressed against a wall
+			stand_x = clampf(pos[PELVIS].x, 170.0, 1110.0)
+		stand = minf(1.0, stand + dt * 0.8)
+		if stand >= 1.0:
+			# settle his balance point over where his feet actually planted
+			stand_x = lerpf(stand_x, clampf((pos[LFT].x + pos[RFT].x) / 2.0, 170.0, 1110.0), dt * 1.5)
 	# tickling
 	if tool == "feather" and mouse_down:
 		var near := _nearest(mouse, 30) >= 0
@@ -344,15 +379,18 @@ func tick(dt: float) -> void:
 	tickle = maxf(0.0, tickle - dt)
 	if tickle > 0.2:
 		for i in [LHA, RHA, LFT, RFT]:
-			prev[i] += Vector2(randf_range(-4, 4), randf_range(-4, 4))
+			prev[i] += Vector2(randf_range(-2.5, 2.5), randf_range(-2.5, 2.5))
 	# whoopee cushion
 	if cushion.x > 0 and cushion_cd <= 0:
-		var p := pos[PELVIS]
-		var v := (p - prev[PELVIS]).y
-		if absf(p.x - cushion.x) < 60 and p.y > FLOOR - 75 and v > 0.5:
+		var squashed := false
+		for i in [PELVIS, NECK, HEAD]:
+			var v := (pos[i] - prev[i]).y
+			if absf(pos[i].x - cushion.x) < 70 and pos[i].y > FLOOR - RADII[i] - 40 and v > 0.4:
+				squashed = true
+		if squashed:
 			cushion_cd = 2.5
 			cushion_squash = 1.0
-			Game.sfx("fart", 0.15)
+			Game.sfx(["fart", "fart2", "fart3"].pick_random(), 0.1)
 			bro.set_mood("surprised", 2.0)
 			add_rage(9.0, cushion + Vector2(0, -60), "PFFFRT!")
 			burst(cushion + Vector2(0, -10), 18, [Color(0.75, 0.9, 0.5, 0.6)], 200, 10, -60, 1.2)
@@ -429,10 +467,10 @@ func _draw_ragdoll() -> void:
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	var along := (pos[PELVIS] - pos[NECK]).normalized()
 	var perp := along.orthogonal()
-	Bro.limb(self, pos[NECK] + along * 10, pos[PELVIS], 84, shirt)
+	Bro.limb(self, pos[NECK] + along * 10, pos[PELVIS] - along * 14, 80, shirt)
 	var mid := pos[NECK].lerp(pos[PELVIS], 0.45)
 	draw_line(mid - perp * 38, mid + perp * 38, shirt.lightened(0.25), 14)
-	Bro.limb(self, pos[PELVIS] - along * 6 - perp * 34, pos[PELVIS] - along * 6 + perp * 34, 14, pants.darkened(0.2))
+	Bro.limb(self, pos[PELVIS] - along * 12 - perp * 32, pos[PELVIS] - along * 12 + perp * 32, 14, pants.darkened(0.2))
 	for arm in [[LEL, LHA, -1], [REL, RHA, 1]]:
 		var sh: Vector2 = pos[NECK] + along * 18 - perp * 36 * arm[2]
 		Bro.limb(self, sh, pos[arm[0]], 24, shirt)

@@ -75,11 +75,59 @@ S["splash"] = mixs(lowpass(noise(0.9), 0.35) * env_exp(0.9, 4) * 1.6,
 S["bubbles"] = mixs(*[np.pad(sweep(300 + 80 * i, 900 + 100 * i, 0.06) * env_exp(0.06, 30),
                               (int(i * 0.09 * SR), 0)) for i in range(8)])
 S["thud"] = mixs(kick(1.0), lowpass(noise(0.15), 0.1) * env_exp(0.15, 25) * 2)
-S["fart"] = (np.where((np.cumsum(90 + 30 * np.sin(2 * np.pi * 7 * t_(0.9))
-                                 + rng.uniform(-20, 20, int(0.9 * SR))) / SR) % 1 < 0.4,
-                      1.0, -1.0)
-             * np.minimum(1, t_(0.9) * 30) * env_exp(0.9, 2.5))
-S["fart"] = lowpass(S["fart"], 0.12) * 1.5
+def resonator(x, freq, r):
+    """Two-pole resonant filter (a cheap formant)."""
+    w = 2 * np.pi * freq / SR
+    a1, a2 = 2 * r * np.cos(w), -r * r
+    y = np.zeros_like(x)
+    y1 = y2 = 0.0
+    for i, v in enumerate(x):
+        y0 = v + a1 * y1 + a2 * y2
+        y[i] = y0
+        y2, y1 = y1, y0
+    return y * (1 - r)
+
+
+def fart(seed, dur, base, squeak=0.0, sputter=0.3, wet=0.5):
+    """Whoopee-cushion fart: an irregular train of 'flap' pulses (like lips
+    buzzing) with wandering pitch, shaped by two cavity resonances, plus
+    breathy air and a wet sputter toward the end."""
+    rng_ = np.random.default_rng(seed)
+    n = int(dur * SR)
+    t = np.arange(n) / SR
+    # pitch: smooth random wander, a squeaky start, sagging at the end
+    walk = lowpass(rng_.normal(0, 1, n), 0.0004)
+    walk /= np.max(np.abs(walk)) + 1e-9
+    f = base * (1 + 0.28 * walk) * (1 + squeak * np.exp(-t * 9)) * (1 - 0.35 * (t / dur) ** 2)
+    # amplitude: quick attack, fluttering body, tail fade
+    flutter = 1 + 0.35 * lowpass(rng_.normal(0, 1, n), 0.002) * 6
+    amp = np.minimum(1, t / 0.02) * np.clip(flutter, 0.2, 1.6) * np.clip((dur - t) / (0.25 * dur), 0, 1) ** 0.7
+    exc = np.zeros(n)
+    i = 0
+    while i < n:
+        period = SR / max(f[i], 25) * rng_.uniform(0.9, 1.12)
+        in_tail = t[i] > dur * (1 - sputter)
+        if in_tail and rng_.random() < 0.35:
+            i += int(period * rng_.integers(1, 4))  # sputter: skipped flaps
+            continue
+        w = int(period * rng_.uniform(0.35, 0.55))
+        k = np.arange(w)
+        pulse = np.sin(np.pi * k / w) ** 2 * (1 - k / w * 0.6)
+        j = min(n, i + w)
+        exc[i:j] += pulse[: j - i] * amp[i] * rng_.uniform(0.75, 1.0)
+        i += int(period)
+    exc -= lowpass(exc, 0.01)  # remove DC thump
+    body = resonator(exc, 210, 0.985) * 1.0 + resonator(exc, 480, 0.97) * 0.9 + resonator(exc, 1100, 0.94) * 0.35 * (0.5 + wet)
+    air = lowpass(rng_.uniform(-1, 1, n), 0.18) * amp * 0.06
+    crackle = (rng_.random(n) > 0.9993).astype(float) * rng_.uniform(-1, 1, n)
+    crackle = lowpass(crackle, 0.3) * (t > dur * (1 - sputter)) * 3 * wet
+    out = body / (np.max(np.abs(body)) + 1e-9) + air + crackle
+    return lowpass(out, 0.5)
+
+
+S["fart"] = fart(3, 1.15, 92, squeak=0.25, sputter=0.3)
+S["fart2"] = fart(11, 0.6, 150, squeak=0.6, sputter=0.2, wet=0.3)
+S["fart3"] = fart(29, 1.7, 68, squeak=0.1, sputter=0.45, wet=0.8)
 S["tickle"] = cat(*[sweep(1200 + 200 * (i % 3), 1600, 0.05) * env_exp(0.05, 40)
                    for i in range(10)])
 S["squeak"] = sweep(1800, 2400, 0.12) * env_exp(0.12, 10) * 0.4
