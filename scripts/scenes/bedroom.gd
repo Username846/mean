@@ -364,3 +364,14 @@ func _draw_ink(c: Vector2, r: float, a: float) -> void:
 func debug_injure() -> void:
 	_wake(false)
 	_scratch_eyes(Vector2(0.38, -0.05))
+
+
+func blaster_hits(p: Vector2) -> bool:
+	return p.distance_to(HC) < R * 1.05
+
+
+func on_blasted(_p: Vector2) -> void:
+	writhe = 1.5
+	bro.set_mood("hurt")
+	bro.say("blasted")
+	get_tree().create_timer(1.2).timeout.connect(func(): bro.set_mood("ko"))

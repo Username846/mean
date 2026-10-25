@@ -31,6 +31,7 @@ var snow := 0.0
 var hair_up := 0.0           ## hair standing on end (scared)
 var puff := 0.0              ## 0..1 allergic swelling
 var bandage := 0                 ## 0 none, 1 head wrap, 2 over the eyes
+var cap_col := Color(0, 0, 0, 0)  ## baseball cap (used for the player's character)
 var shirt_col := SHIRT
 var sitting := false
 var hide_legs := false
@@ -187,6 +188,15 @@ func _draw() -> void:
 	draw_rect(Rect2(head.x - 12, head.y + 30, 24, 26), SKIN.darkened(0.05))
 	draw_head(self, head + Vector2(0, -puff * 18), 48 * (1.0 + puff * 0.45), mood, look, _blink > 0, red,
 		{"pie": pie, "wet": wet, "snow": snow, "hair_up": hair_up, "t": t, "puff": puff, "bandage": bandage})
+	if cap_col.a > 0:
+		var hc := head + Vector2(0, -puff * 18)
+		var cap := PackedVector2Array()
+		for i in 13:
+			var a := lerpf(PI, TAU, i / 12.0)
+			cap.append(hc + Vector2(cos(a) * 52, sin(a) * 50 - 14))
+		draw_colored_polygon(cap, cap_col)
+		draw_colored_polygon(FX.ellipse(hc + Vector2(34, -14), 40, 9), cap_col.darkened(0.2))
+		draw_circle(hc + Vector2(0, -64), 6, cap_col.darkened(0.3))
 
 
 static func draw_head(ci: CanvasItem, c: Vector2, r: float, mood: String, look: Vector2,

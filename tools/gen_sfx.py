@@ -207,6 +207,13 @@ S["snip"] = cat(noise(0.03) * 0.8, silence(0.04), sweep(3000, 2200, 0.05, "squar
 S["chitter"] = cat(*[sweep(2600, 3400, 0.04, "tri") * env_exp(0.04, 40) * 0.5 for _ in range(9)])
 S["rustle"] = lowpass(noise(0.7), 0.45) * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 6 * t_(0.7)))) * np.sin(np.pi * t_(0.7) / 0.7)
 
+S["blaster"] = mixs(kick(0.6) * 0.6, lowpass(noise(0.25), 0.5) * env_exp(0.25, 18) * 1.5,
+                   sweep(700, 2200, 0.12, "tri") * env_exp(0.12, 20) * 0.4)
+S["heartbeat"] = mixs(kick(1.0), np.pad(kick(0.7), (int(0.22 * SR), 0)))
+S["rip"] = cat(*[lowpass(noise(0.05), 0.6) * env_exp(0.05, 30) * rng.uniform(0.5, 1) for _ in range(8)])
+S["itemget"] = cat(*[tone("square", m, d, 0.35, duty=0.25, s=0.9)
+                    for m, d in ((67, 0.1), (71, 0.1), (74, 0.1), (79, 0.1), (83, 0.1), (86, 0.45))])
+
 if __name__ == "__main__":
     for name, data in S.items():
         data = np.asarray(data, dtype=float)

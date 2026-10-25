@@ -555,3 +555,23 @@ func _draw_cursor() -> void:
 func debug_injure() -> void:
 	bangs = BANGS_TO_KO - 1
 	_impact(HEAD, 2000.0)
+
+
+## The blaster hits wherever his ragdoll actually is.
+func blaster_hits(p: Vector2) -> bool:
+	for i in pos.size():
+		if pos[i].distance_to(p) < RADII[i] + 14.0:
+			return true
+	return Geometry2D.get_closest_point_to_segment(p, pos[NECK], pos[PELVIS]).distance_to(p) < 46.0
+
+
+func on_blasted(p: Vector2) -> void:
+	grabbed = -1
+	stun = 1e9
+	stand = 0.0
+	skull_cracked = true
+	for i in pos.size():
+		prev[i] -= (pos[i] - p).normalized() * 9.0
+	bro.set_mood("hurt")
+	bro.say("blasted")
+	get_tree().create_timer(1.0).timeout.connect(func(): bro.set_mood("ko"))

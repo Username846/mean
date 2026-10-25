@@ -167,6 +167,27 @@ class Puddle extends Node2D:
 		return pts
 
 
+## The Mega Blaster 9000 (a toy foam blaster): orange body, blue barrel, orange tip.
+static func draw_blaster(ci: CanvasItem, pos: Vector2, sc := 1.0, rot := 0.0) -> void:
+	ci.draw_set_transform(pos, rot, Vector2(sc, sc))
+	rounded_rect(ci, Rect2(-46, -22, 92, 34), Color("#ff8a1c"), 10, Color("#5a2a00"), 3)
+	rounded_rect(ci, Rect2(30, -16, 50, 20), Color("#2f7fe0"), 6, Color("#10305a"), 3)
+	ci.draw_rect(Rect2(80, -18, 12, 24), Color("#ff8a1c"))
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(-34, 8), Vector2(-6, 8), Vector2(-14, 46), Vector2(-40, 46)]), Color("#2f7fe0"))
+	ci.draw_arc(Vector2(4, 16), 12, 0, PI, 10, Color("#5a2a00"), 4)
+	ci.draw_circle(Vector2(-8, -30), 12, Color("#ffde3b"))
+	ci.draw_rect(Rect2(-30, -14, 40, 6), Color("#ffde3b"))
+	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+## A foam dart (orange tip, blue body).
+static func draw_dart(ci: CanvasItem, pos: Vector2, rot: float, sc := 1.0) -> void:
+	ci.draw_set_transform(pos, rot, Vector2(sc, sc))
+	ci.draw_rect(Rect2(-34, -6, 30, 12), Color("#2f7fe0"))
+	ci.draw_circle(Vector2(-2, 0), 8, Color("#ff8a1c"))
+	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
 ## "+25 MEAN!" style floating text.
 static func float_text(parent: Node, pos: Vector2, text: String, col := Color("#ffde3b"), size := 30) -> void:
 	var l := Label.new()

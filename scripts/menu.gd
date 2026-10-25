@@ -47,6 +47,12 @@ func _ready() -> void:
 		else:
 			reset.text = "Really reset?")
 	foot.add_child(reset)
+	if Game.seen_revenge:
+		var rev := Button.new()
+		rev.text = "His Revenge"
+		rev.add_theme_stylebox_override("normal", Game._box(Color("#c01020")))
+		rev.pressed.connect(func(): Game.goto("revenge"))
+		foot.add_child(rev)
 	if Game.star_count() >= 10:
 		var end := Button.new()
 		end.text = "  The Ending  "
@@ -64,6 +70,8 @@ func _ready() -> void:
 	get_tree().create_timer(0.5).timeout.connect(func():
 		if Game.star_count() >= 10 and not Game.seen_ending:
 			Game.goto("ending")
+		elif Game.injury_count() >= 10 and not Game.seen_revenge:
+			Game.goto("revenge")
 		elif not Game.voice_busy():
 			Game.voice("choose"))
 

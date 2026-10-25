@@ -163,15 +163,18 @@ func _enter_room() -> void:
 			bro.bandage = 1
 		"bedroom":
 			bro.bandage = 2
+	if Game.hospital_serious:
+		bro.bandage = 1
+		bro.set_mood("hurt")
 	if crashed:
 		bro.bandage = maxi(bro.bandage, 1)
 		bro.hair_up = 0.6
 	add_child(bro)
 	add_child(FX.Layer.new(_draw_blanket, 3))
-	get_tree().create_timer(1.4).timeout.connect(func(): _say(doc_anchor, "doctor_twice" if crashed else "doctor_ok", Vector2(40, -90)))
+	get_tree().create_timer(1.4).timeout.connect(func(): _say(doc_anchor, "doctor_serious" if Game.hospital_serious else ("doctor_twice" if crashed else "doctor_ok"), Vector2(40, -90)))
 	get_tree().create_timer(5.0).timeout.connect(func():
 		bro.set_mood("angry")
-		bro.say("hosp_bro"))
+		bro.say("hosp_serious" if Game.hospital_serious else "hosp_bro"))
 	get_tree().create_timer(2.0).timeout.connect(_show_panel)
 
 
@@ -229,7 +232,7 @@ func _process(dt: float) -> void:
 	if phase == "room":
 		beep_t -= dt
 		if beep_t <= 0:
-			beep_t = 0.9
+			beep_t = 0.45 if Game.hospital_serious else 0.9
 			Game.sfx("beep", 0.0, -12)
 	queue_redraw()
 
@@ -349,7 +352,7 @@ func _draw_room() -> void:
 	var pts := PackedVector2Array()
 	for i in 50:
 		var x := i * 4.0
-		var ph := fmod(x / 196.0 * 2.0 + t * 1.1, 1.0)
+		var ph := fmod(x / 196.0 * 2.0 + t * (2.4 if Game.hospital_serious else 1.1), 1.0)
 		var y := 0.0
 		if ph > 0.45 and ph < 0.5:
 			y = -40 * sin((ph - 0.45) / 0.05 * PI)
@@ -357,7 +360,16 @@ func _draw_room() -> void:
 			y = 15
 		pts.append(Vector2(892 + x, 330 + y))
 	draw_polyline(pts, Color("#40ff70"), 3)
-	draw_string(ThemeDB.fallback_font, Vector2(900, 402), "HR 72", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color("#40ff70"))
+	draw_string(ThemeDB.fallback_font, Vector2(900, 402), "HR 140" if Game.hospital_serious else "HR 72", HORIZONTAL_ALIGNMENT_LEFT, -1, 20,
+		Color("#ff5050") if Game.hospital_serious else Color("#40ff70"))
+	if Game.hospital_serious:
+		# IV drip
+		draw_line(Vector2(440, 620), Vector2(440, 250), Color("#888"), 5)
+		draw_line(Vector2(410, 250), Vector2(470, 250), Color("#888"), 5)
+		FX.rounded_rect(self, Rect2(425, 255, 34, 56), Color(0.8, 0.9, 1, 0.85), 8, Color("#9ab"), 2)
+		draw_line(Vector2(442, 311), Vector2(640, 470), Color(0.7, 0.8, 0.9), 2)
+		FX.rounded_rect(self, Rect2(40, 120 if crashed else 40, 400, 70), Color("#c01020"), 10)
+		draw_string(ThemeDB.fallback_font, Vector2(60, 170 if crashed else 90), "INTENSIVE CARE", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color.WHITE)
 	draw_line(Vector2(990, 410), Vector2(990, 560), Color("#888"), 6)
 	# bed head + pillow
 	FX.rounded_rect(self, Rect2(500, 330, 400, 90), Color("#9aa6b8"), 12)
@@ -394,5 +406,11 @@ func _draw_blanket(ci: CanvasItem) -> void:
 
 ## Test hook: 1 = blow a tire right away.
 func debug_state(n: int) -> void:
+	if n == 2:
+		Game.hospital_serious = true
 	if n == 1:
 		_blowout(WHEELS[1].x)
+
+
+func _exit_tree() -> void:
+	Game.hospital_serious = false

@@ -22,6 +22,10 @@ var time := 0.0
 var _shake := 0.0
 var fx_layer: Node2D
 var injured := false
+var blaster_on := false
+var blaster_btn: Button
+var blaster_aim := Vector2(-100, -100)
+var darts: Array = []        ## {from, to, t, hit}
 
 
 func _ready() -> void:
@@ -32,6 +36,7 @@ func _ready() -> void:
 	fx_layer = Node2D.new()
 	fx_layer.z_index = 45
 	add_child(fx_layer)
+	_build_blaster()
 	get_tree().create_timer(0.4).timeout.connect(func(): Game.voice("s_" + scene_id))
 
 
@@ -216,23 +221,27 @@ func injure(cause: String, delay := 3.0) -> void:
 	Game.injuries[scene_id] = true
 	Game.hospital_from = scene_id
 	Game.hospital_cause = cause
+	Game.hospital_serious = false
 	Game.save_game()
 	get_tree().create_timer(delay).timeout.connect(_emergency)
 
 
-func _emergency() -> void:
+func _emergency(text := "OH NO!\nHe's got to go to the HOSPITAL!", flashes := 8, wait := 3.8, mom_delay := 0.0) -> void:
 	Game.stop_music()
 	Game.sfx("siren", 0.0, -2)
-	Game.voice("mom_ambulance")
+	if mom_delay > 0.0:
+		get_tree().create_timer(mom_delay).timeout.connect(func(): Game.voice("mom_ambulance"))
+	else:
+		Game.voice("mom_ambulance")
 	var flash := ColorRect.new()
 	flash.color = Color(1, 0, 0, 0.0)
 	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(flash)
-	var tw := flash.create_tween().set_loops(8)
+	var tw := flash.create_tween().set_loops(flashes)
 	tw.tween_property(flash, "color:a", 0.35, 0.22)
 	tw.tween_property(flash, "color:a", 0.05, 0.22)
-	var l := Game.make_label("OH NO!\nHe's got to go to the HOSPITAL!", 54, Color.WHITE)
+	var l := Game.make_label(text, 54, Color.WHITE)
 	l.add_theme_color_override("font_outline_color", Color("#a00010"))
 	l.add_theme_constant_override("outline_size", 18)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -242,7 +251,138 @@ func _emergency() -> void:
 	hud.add_child(l)
 	l.scale = Vector2(0.2, 0.2)
 	l.create_tween().tween_property(l, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	get_tree().create_timer(3.8).timeout.connect(func(): Game.goto("hospital"))
+	get_tree().create_timer(wait).timeout.connect(func(): Game.goto("hospital"))
+
+
+# ---------------------------------------------------------- Mega Blaster 9000
+
+func _build_blaster() -> void:
+	if not Game.has_blaster:
+		return
+	blaster_btn = Button.new()
+	blaster_btn.toggle_mode = true
+	blaster_btn.custom_minimum_size = Vector2(116, 80)
+	blaster_btn.position = Vector2(1150, 626)
+	blaster_btn.add_theme_stylebox_override("pressed", Game._box(Color("#e8303a"), 14, Color("#fff6b0"), 4))
+	blaster_btn.toggled.connect(func(on: bool):
+		blaster_on = on
+		Game.sfx("click"))
+	hud.add_child(blaster_btn)
+	var icon := FX.Layer.new(func(ci): FX.draw_blaster(ci, Vector2(52, 34), 0.62))
+	blaster_btn.add_child(icon)
+	hud.add_child(FX.Layer.new(_draw_blaster_fx, 10))
+
+
+func _input(e: InputEvent) -> void:
+	if not blaster_on or injured:
+		return
+	if e is InputEventMouseMotion:
+		blaster_aim = e.position
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		blaster_aim = e.position
+		if e.position.y < 70 or blaster_btn.get_global_rect().grow(6).has_point(e.position):
+			return  # let the HUD buttons work
+		get_viewport().set_input_as_handled()
+		Game.sfx("blaster", 0.1)
+		darts.append({"from": Vector2(1210, 700), "to": e.position, "t": 0.0, "hit": blaster_hits(e.position)})
+
+
+## Override for locations where Bro isn't a plain standing puppet.
+func blaster_hits(p: Vector2) -> bool:
+	if not is_instance_valid(bro) or not bro.visible:
+		return false
+	if p.distance_to(bro.head_pos()) < 62.0 * absf(bro.scale.y):
+		return true
+	return Rect2(-50, -200, 100, 200).has_point(bro.to_local(p))
+
+
+func _update_darts(dt: float) -> void:
+	for d in darts:
+		if d.t < 1.0:
+			d.t = minf(1.0, d.t + dt / 0.12)
+			if d.t >= 1.0:
+				if d.hit and not injured:
+					_blasted(d.to)
+				elif not d.hit:
+					Game.sfx("thud", 0.2, -10, 1.6)
+					if randf() < 0.4:
+						chat(["missed", "nyah", "tooslow"].pick_random())
+
+
+func _draw_blaster_fx(ci: CanvasItem) -> void:
+	for d in darts:
+		var from: Vector2 = d.from
+		var to: Vector2 = d.to
+		FX.draw_dart(ci, from.lerp(to, d.t), (to - from).angle())
+	if blaster_on and not injured and blaster_aim.y > 70:
+		ci.draw_arc(blaster_aim, 28, 0, TAU, 24, Color("#ff3b3b"), 3)
+		ci.draw_circle(blaster_aim, 4, Color("#ff3b3b"))
+		for k in 4:
+			var dir := Vector2.from_angle(k * PI / 2)
+			ci.draw_line(blaster_aim + dir * 16, blaster_aim + dir * 40, Color("#ff3b3b"), 3)
+
+
+## Point-blank Mega Blaster hit: the long, scary emergency.
+func _blasted(p: Vector2) -> void:
+	injured = true
+	set_process_unhandled_input(false)
+	blaster_on = false
+	Game.hospital_from = scene_id
+	Game.hospital_cause = "Hit point-blank by the Mega Blaster 9000"
+	Game.hospital_serious = true
+	Game.sfx("crack", 0.0)
+	Game.sfx("bonk", 0.0)
+	shake(20)
+	on_blasted(p)
+	# white flash, then the world goes dark and red
+	var flash := ColorRect.new()
+	flash.color = Color(1, 1, 1, 0.9)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(flash)
+	flash.create_tween().tween_property(flash, "color:a", 0.0, 0.4)
+	var dark := ColorRect.new()
+	dark.color = Color(0, 0, 0, 0)
+	dark.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(dark)
+	dark.create_tween().tween_property(dark, "color:a", 0.55, 2.5)
+	var red := ColorRect.new()
+	red.color = Color(0.8, 0, 0, 0)
+	red.set_anchors_preset(Control.PRESET_FULL_RECT)
+	red.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(red)
+	var pulse := red.create_tween().set_loops(12)
+	pulse.tween_property(red, "color:a", 0.28, 0.5)
+	pulse.tween_property(red, "color:a", 0.06, 0.5)
+	get_tree().create_timer(0.6).timeout.connect(Game.stop_music)
+	for k in 5:
+		get_tree().create_timer(1.0 + k * (1.1 + k * 0.15)).timeout.connect(func(): Game.sfx("heartbeat", 0.0, 2))
+	get_tree().create_timer(2.4).timeout.connect(func():
+		Game.voice("whathaveyoudone")
+		var l := Game.make_label("Oh no... what have you DONE?!", 50, Color("#ffb0b0"))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.size = Vector2(1280, 70)
+		l.position = Vector2(0, 120)
+		l.modulate.a = 0.0
+		hud.add_child(l)
+		l.create_tween().tween_property(l, "modulate:a", 1.0, 1.0))
+	get_tree().create_timer(6.5).timeout.connect(func():
+		Game.voice("code_red")
+		_emergency("CODE RED!\nHe's SERIOUSLY hurt!", 14, 6.0, 1.6))
+
+
+## Override to customise how Bro reacts to a blaster hit.
+func on_blasted(p: Vector2) -> void:
+	bro.set_mood("hurt")
+	bro.say("blasted")
+	bro.flail(1.0)
+	var standing := absf(bro.rotation) < 0.3 and bro.visible
+	get_tree().create_timer(0.9).timeout.connect(func():
+		bro.set_mood("ko")
+		Game.sfx("thud", 0.0)
+		if standing:
+			bro.fall_over(-1.0 if p.x > bro.global_position.x else 1.0))
 
 
 ## Spreading cartoon blood puddle at `pos`.
@@ -277,6 +417,7 @@ func _process(dt: float) -> void:
 			if lines.size() > 0:
 				bro.say(lines.pick_random(), false)
 	queue_redraw()
+	_update_darts(dt)
 	tick(dt)
 
 

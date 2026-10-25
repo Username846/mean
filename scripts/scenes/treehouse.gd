@@ -361,3 +361,23 @@ func debug_injure() -> void:
 	state = "down"
 	bro.position = Vector2(LADDER_X, 470)
 	_cut_ladder()
+
+
+func on_blasted(p: Vector2) -> void:
+	var on_ladder := _on_ladder()
+	state = "fall"
+	bro.set_mood("hurt")
+	bro.say("blasted")
+	bro.flail(1.0)
+	if on_ladder:
+		var tw := create_tween()
+		tw.tween_property(bro, "position:y", GROUND, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_callback(func():
+			Game.sfx("thud", 0.0)
+			bro.set_mood("ko")
+			bro.fall_over(1.0))
+	else:
+		get_tree().create_timer(0.9).timeout.connect(func():
+			Game.sfx("thud", 0.0)
+			bro.set_mood("ko")
+			bro.fall_over(-1.0 if p.x > bro.position.x else 1.0))

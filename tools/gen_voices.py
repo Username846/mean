@@ -18,6 +18,8 @@ VOICES = {
     "you": ["-v", "en-us+m1", "-p", "28", "-s", "140", "-a", "180"],
     "mom": ["-v", "en-us+f2", "-p", "60", "-s", "150", "-a", "180"],
     "doc": ["-v", "en-us+m4", "-p", "40", "-s", "150", "-a", "180"],
+    "kid": ["-v", "en-us+f4", "-p", "88", "-s", "160", "-a", "180"],
+    "dealer": ["-v", "en-us+m7", "-p", "18", "-s", "125", "-a", "170"],
 }
 
 # id: (speaker, spoken text, subtitle shown on screen)
@@ -115,6 +117,21 @@ LINES = {
     "doctor_ok": ("doc", "He's going to be okay. But no more pranks!", "DOCTOR: He's going to be okay. But NO more pranks!"),
     "hosp_bro": ("bro", "Ow. I am so telling Mom about this one.", "Ow... I am SO telling Mom about this one."),
     "emergency": ("you", "Emergency!", "EMERGENCY!"),
+    # --- revenge + the blaster
+    "rev_1": ("bro", "You put me in the hospital ten times!", "You put me in the hospital TEN TIMES!"),
+    "rev_2": ("bro", "Now it's my turn! Revenge!", "Now it's MY turn! REVENGE!"),
+    "rev_3": ("bro", "Ha! Not so funny now, is it?", "HA! Not so funny now, is it?!"),
+    "kid_room": ("kid", "My room! My castle! Nooooo!", "YOU: My room! My castle! NOOOOO!"),
+    "dealer_1": ("dealer", "Psst. Hey kid. Looking for some foam?", "DEALER: Psst... hey kid. Lookin' for some... foam?"),
+    "kid_buy": ("kid", "I need the biggest Nerf blaster you've got.", "YOU: I need the biggest Nerf blaster you've got."),
+    "dealer_2": ("dealer", "The Mega Blaster nine thousand. Twelve bucks. No refunds.", "DEALER: The Mega Blaster 9000. Twelve bucks. No refunds."),
+    "kid_deal": ("kid", "Deal. Time for payback.", "YOU: Deal. Time for payback."),
+    "got_blaster": ("you", "You got the Mega Blaster nine thousand!", "You got the MEGA BLASTER 9000!"),
+    "blasted": ("bro", "Aaaah! Right in the face!", "AAAAH! RIGHT IN THE FACE!"),
+    "whathaveyoudone": ("you", "Oh no. What have you done?", "Oh no... what have you DONE?!"),
+    "code_red": ("you", "Code red! Code red!", "CODE RED! CODE RED!"),
+    "doctor_serious": ("doc", "This is serious. He has to stay in intensive care for a while.", "DOCTOR: This is serious. He has to stay in intensive care for a while."),
+    "hosp_serious": ("bro", "Who sells Nerf blasters on street corners anyway?", "Who sells Nerf blasters on STREET CORNERS anyway?!"),
     # --- mom
     "mom_stop": ("mom", "Kids! Play nice!", "MOM: Kids! Play nice!"),
     "mom_dinner": ("mom", "Dinner's ready!", "MOM: Dinner's ready!"),

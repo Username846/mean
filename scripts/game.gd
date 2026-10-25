@@ -29,6 +29,9 @@ var seen_ending := false
 var injuries := {}           ## scene id -> true once its hospital accident was found
 var hospital_from := ""
 var hospital_cause := ""
+var hospital_serious := false    ## this trip was the Mega Blaster: intensive care
+var seen_revenge := false        ## his revenge + the night-time blaster purchase
+var has_blaster := false
 
 var music: AudioStreamPlayer
 var voice_player: AudioStreamPlayer
@@ -252,6 +255,8 @@ func save_game() -> void:
 	cf.set_value("game", "seen_ending", seen_ending)
 	cf.set_value("game", "volume", volume)
 	cf.set_value("game", "injuries", injuries)
+	cf.set_value("game", "seen_revenge", seen_revenge)
+	cf.set_value("game", "has_blaster", has_blaster)
 	cf.save(SAVE_PATH)
 
 
@@ -265,6 +270,8 @@ func load_game() -> void:
 	seen_ending = cf.get_value("game", "seen_ending", false)
 	volume = cf.get_value("game", "volume", 0.8)
 	injuries = cf.get_value("game", "injuries", {})
+	seen_revenge = cf.get_value("game", "seen_revenge", false)
+	has_blaster = cf.get_value("game", "has_blaster", false)
 
 
 func reset_save() -> void:
@@ -273,6 +280,8 @@ func reset_save() -> void:
 	best = {}
 	seen_ending = false
 	injuries = {}
+	seen_revenge = false
+	has_blaster = false
 	save_game()
 
 

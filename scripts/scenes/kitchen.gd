@@ -282,3 +282,8 @@ func _enter_tree() -> void:
 func debug_injure() -> void:
 	bro.position.x = 320.0
 	_pots_fall(1)
+
+
+## Ducking behind the counter keeps him safe.
+func blaster_hits(p: Vector2) -> bool:
+	return duck < 0.5 and super(p)

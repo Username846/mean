@@ -299,3 +299,21 @@ func debug_injure() -> void:
 	state = "up"
 	rise = 1.0
 	_rock_hit(bro.head_pos())
+
+
+## Only while he's popped up from behind a fort.
+func blaster_hits(p: Vector2) -> bool:
+	return state == "up" and rise > 0.5 and super(p)
+
+
+func on_blasted(_p: Vector2) -> void:
+	state = "hurt"
+	rise = 1.0
+	bro.position.y = BASE
+	throwing = false
+	bro.set_mood("hurt")
+	bro.say("blasted")
+	get_tree().create_timer(0.9).timeout.connect(func():
+		bro.set_mood("ko")
+		bro.fall_over(1.0, 130.0)
+		Game.sfx("thud", 0.0, -4))

@@ -332,3 +332,12 @@ func debug_injure() -> void:
 	level = [1.0, 1.0, 1.0]
 	buried = 5.0
 	_drown()
+
+
+func blaster_hits(p: Vector2) -> bool:
+	if p.distance_to(bro.head_pos()) < 62.0:
+		return true
+	for i in 3:
+		if p.distance_to(_zone(i)) < 70.0:
+			return true
+	return false
