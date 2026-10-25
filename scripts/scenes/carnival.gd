@@ -13,6 +13,11 @@ var aim := Vector2.ZERO
 var dunked := false
 var lights_t := 0.0
 var lever := 0.0
+var sign_hits := 0
+var sign_wob := 0.0
+var sign_fall := 0.0
+var dunk_tw: Tween
+const SIGN := Rect2(840, 140, 370, 50)
 
 
 func _init() -> void:
@@ -55,6 +60,7 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func tick(dt: float) -> void:
+	sign_wob = maxf(0.0, sign_wob - dt * 1.5)
 	lights_t += dt
 	lever = move_toward(lever, 0.0, dt * 2)
 	aim = _aim_at(mouse)
@@ -74,6 +80,9 @@ func _aim_at(p: Vector2) -> Vector2:
 
 
 func _land(p: Vector2) -> void:
+	if SIGN.grow(8).has_point(p) and sign_fall == 0.0:
+		_hit_sign(p)
+		return
 	var d := p.distance_to(target)
 	if d < 62 and not dunked:
 		Game.sfx("bell")
@@ -89,11 +98,46 @@ func _land(p: Vector2) -> void:
 			chat(["taunt2", "missed", "nyah", "taunt"].pick_random())
 
 
+## Hitting the sign loosens it; on the 4th hit it falls and pins him underwater.
+func _hit_sign(p: Vector2) -> void:
+	sign_hits += 1
+	sign_wob = 1.0
+	Game.sfx("clang", 0.1)
+	burst(p, 10, [Color("#ffde3b"), Color.WHITE], 250, 4, 900, 0.5)
+	if sign_hits < 4:
+		if not dunked:
+			bro.set_mood("surprised", 1.0)
+			chat(["missed", "taunt2", "nyah"].pick_random())
+		return
+	Game.sfx("crack", 0.0)
+	injure("Pinned underwater by the falling sign", 5.0)
+	if dunk_tw and dunk_tw.is_valid():
+		dunk_tw.kill()
+	dunked = true
+	bro.set_mood("scared")
+	var tw := create_tween()
+	tw.tween_property(self, "sign_fall", 1.0, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.parallel().tween_property(bro, "position:y", 640.0, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func():
+		Game.sfx("splash", 0.0)
+		Game.sfx("bubbles", 0.0)
+		shake(14)
+		bro.wet = 1.0
+		bro.flail(3.0)
+		bro.say("help")
+		burst(Vector2(TANK.get_center().x, TANK.position.y + 30), 60, [Color(0.5, 0.8, 1, 0.9), Color(0.85, 0.95, 1)], 600, 8, 900, 1.2, PI, -PI / 2))
+	get_tree().create_timer(2.2).timeout.connect(func():
+		Game.sfx("choke", 0.0)
+		Game.sfx("bubbles", 0.0, 0, 0.8))
+	get_tree().create_timer(3.4).timeout.connect(func(): bro.set_mood("ko"))
+
+
 func _dunk(perfect: bool) -> void:
 	dunked = true
 	bro.set_mood("surprised")
 	bro.flail(1.0)
 	var tw := create_tween()
+	dunk_tw = tw
 	tw.tween_property(bro, "position:y", 640.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func():
 		Game.sfx("splash")
@@ -156,15 +200,32 @@ func _draw() -> void:
 	draw_rect(Rect2(TANK.position, TANK.size), Color("#1e5a8a"))
 	draw_rect(Rect2(TANK.position.x - 10, 150, 20, TANK.end.y - 150), Color("#aaa"))
 	draw_rect(Rect2(TANK.end.x - 10, 150, 20, TANK.end.y - 150), Color("#aaa"))
-	rrect(Rect2(TANK.position.x - 20, 140, TANK.size.x + 40, 50), Color("#ff5a4f"), 8)
-	draw_string(ThemeDB.fallback_font, Vector2(TANK.position.x + 40, 178), "DUNK THE BRO!", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color.WHITE)
+	if sign_fall == 0.0:
+		var tilt := sign_hits * 0.06 + sin(time * 20) * 0.05 * sign_wob
+		var piv := SIGN.position + Vector2(10, 0)
+		draw_set_transform_matrix(Transform2D(tilt, piv) * Transform2D(0, -piv))
+		_draw_sign(self)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
 	var seat_drop := 0.0 if not dunked else 1.0
 	draw_set_transform(Vector2(TANK.position.x + 10, SEAT_Y - 30), seat_drop * 1.2, Vector2.ONE)
 	draw_rect(Rect2(0, 0, 230, 16), Color("#8a5a3c"))
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 
+func _draw_sign(ci: CanvasItem) -> void:
+	FX.rounded_rect(ci, SIGN, Color("#ff5a4f"), 8)
+	ci.draw_string(ThemeDB.fallback_font, SIGN.position + Vector2(60, 38), "DUNK THE BRO!", HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color.WHITE)
+	if sign_hits >= 2:
+		ci.draw_polyline(PackedVector2Array([SIGN.position + Vector2(300, 0), SIGN.position + Vector2(280, 22), SIGN.position + Vector2(310, 50)]), Color("#5a1010"), 3)
+
+
 func _foreground(ci: CanvasItem) -> void:
+	if sign_fall > 0.0:
+		# the sign falling into the tank and pinning him
+		var c := SIGN.get_center().lerp(Vector2(TANK.get_center().x, TANK.position.y + 90), sign_fall)
+		ci.draw_set_transform_matrix(Transform2D(sign_fall * 0.25, c) * Transform2D(0, -SIGN.get_center()))
+		_draw_sign(ci)
+		ci.draw_set_transform_matrix(Transform2D.IDENTITY)
 	# water + glass in front of Bro
 	var wl := TANK.position.y + 40 + sin(time * 3) * 4
 	var pts := PackedVector2Array([Vector2(TANK.position.x, TANK.end.y)])
@@ -192,3 +253,9 @@ func _foreground(ci: CanvasItem) -> void:
 
 func _enter_tree() -> void:
 	add_child(FX.Layer.new(_foreground, 5))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	for i in 4:
+		_hit_sign(SIGN.get_center())

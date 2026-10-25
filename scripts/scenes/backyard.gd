@@ -15,6 +15,7 @@ var walk_t := 2.0
 var umbrella := 0.0
 var umbrella_t := 0.0
 var mouse := Vector2.ZERO
+var branch := {}
 var clouds := [Vector2(200, 120), Vector2(620, 80), Vector2(1000, 150)]
 
 
@@ -64,6 +65,12 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func tick(dt: float) -> void:
+	_update_branch(dt)
+	if injured:
+		umbrella = move_toward(umbrella, 0.0, dt * 5)
+		bro.arm_r = 0.25
+		_update_balloons_only(dt)
+		return
 	# bro wandering
 	walk_t -= dt
 	var speed := 120.0 + rage * 2.0
@@ -111,6 +118,10 @@ func tick(dt: float) -> void:
 			if randf() < 0.5:
 				bro.say(["soaked", "cold", "hey"].pick_random(), false)
 			continue
+		if branch.is_empty() and (b.p.distance_to(Vector2(1200, 230)) < 110 or b.p.distance_to(Vector2(1120, 280)) < 70):
+			_pop(b, false)
+			_snap_branch(b.p)
+			continue
 		if b.p.y > GROUND - 8 or b.p.x > 1320 or b.p.x < -40:
 			_pop(b, false)
 			if b.p.x < 1280:
@@ -120,6 +131,57 @@ func tick(dt: float) -> void:
 	for p in puddles:
 		p.a -= dt * 0.1
 	puddles = puddles.filter(func(p): return p.a > 0)
+
+
+func _update_balloons_only(dt: float) -> void:
+	for b in balloons.duplicate():
+		b.v.y += GRAV * dt
+		b.p += b.v * dt
+		if b.p.y > GROUND - 8 or b.p.x > 1320:
+			_pop(b, false)
+
+
+## A balloon in the leaves snaps a branch off; it falls straight down.
+func _snap_branch(p: Vector2) -> void:
+	Game.sfx("crack", 0.0)
+	burst(p, 20, [Color("#3f9a3a"), Color("#4caf45")], 250, 6, 500, 1.2)
+	branch = {"x": clampf(p.x, 1060.0, 1190.0), "y": 300.0, "vy": 0.0, "rot": 0.0, "done": false}
+
+
+func _update_branch(dt: float) -> void:
+	if branch.is_empty() or branch.done:
+		return
+	branch.vy += GRAV * dt
+	branch.y += branch.vy * dt
+	branch.rot += dt * 2.5
+	var hp := bro.head_pos()
+	if not injured and absf(hp.x - branch.x) < 110 and branch.y > hp.y - 50:
+		branch.done = true
+		branch.y = hp.y - 40
+		Game.sfx("crack", 0.0)
+		Game.sfx("thud", 0.0)
+		shake(14)
+		bro.set_mood("hurt")
+		bro.say("aaah")
+		burst(hp + Vector2(0, -30), 20, [Color("#ffe14a"), Color.WHITE], 300, 6, 800, 0.7)
+		injure("Cracked skull from a falling tree branch", 4.0)
+		get_tree().create_timer(0.9).timeout.connect(func():
+			bro.set_mood("ko")
+			bro.fall_over(-1.0)
+			Game.sfx("thud", 0.1, -4)
+			branch.y = GROUND - 20.0
+			get_tree().create_timer(0.6).timeout.connect(func():
+				blood(bro.head_pos() + Vector2(0, 40), 100)))
+	elif branch.y >= GROUND - 20:
+		branch.y = GROUND - 20
+		branch.done = true
+		Game.sfx("thud", 0.1, -4)
+		if not injured:
+			bro.set_mood("smug", 1.5)
+			chat("missed")
+			get_tree().create_timer(3.0).timeout.connect(func():
+				if not injured:
+					branch = {})
 
 
 func _pop(b: Dictionary, hit: bool) -> void:
@@ -163,6 +225,14 @@ func _draw() -> void:
 
 
 func _foreground(ci: CanvasItem) -> void:
+	if not branch.is_empty():
+		var c := Vector2(branch.x, branch.y)
+		ci.draw_set_transform(c, branch.rot if not branch.done else 0.1, Vector2.ONE)
+		ci.draw_line(Vector2(-80, 0), Vector2(80, 0), Color("#6a3f22"), 16)
+		ci.draw_line(Vector2(20, 0), Vector2(60, -40), Color("#6a3f22"), 9)
+		for k in 6:
+			ci.draw_circle(Vector2(-70 + k * 30, -14 + (k % 2) * 20), 22, Color("#3f9a3a"))
+		ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	# umbrella above bro
 	if umbrella > 0.05:
 		var hp := bro.head_pos()
@@ -204,3 +274,10 @@ func _foreground(ci: CanvasItem) -> void:
 
 func _enter_tree() -> void:
 	add_child(FX.Layer.new(_foreground, 5))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	bro.position.x = 1120.0
+	target_x = 1120.0
+	_snap_branch(Vector2(1150, 260))

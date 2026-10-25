@@ -134,6 +134,9 @@ func _bite() -> void:
 
 func _react() -> void:
 	state = "react"
+	if "sardine" in layers:
+		_allergy()
+		return
 	var gross := 0
 	var hot := 0
 	var worm := false
@@ -172,6 +175,22 @@ func _react() -> void:
 		if hot >= 3 and gross >= 4:
 			get_tree().create_timer(2.2).timeout.connect(func(): Game.voice("supermean"))
 	get_tree().create_timer(3.5).timeout.connect(_reset)
+
+
+func _allergy() -> void:
+	bro.set_mood("gross")
+	bro.say("cantbreathe")
+	bro.flail(3.0)
+	Game.sfx("choke", 0.0)
+	injure("Severe sardine allergy", 5.0)
+	var tw := create_tween()
+	tw.tween_property(bro, "puff", 1.0, 2.6).set_trans(Tween.TRANS_SINE)
+	get_tree().create_timer(1.7).timeout.connect(func(): Game.sfx("choke", 0.0, 0, 0.85))
+	get_tree().create_timer(3.2).timeout.connect(func():
+		bro.set_mood("ko")
+		bro.fall_over(-1.0, 0.0)
+		Game.sfx("thud", 0.0)
+		shake(8))
 
 
 func _reset() -> void:
@@ -336,3 +355,9 @@ func _draw_layer_ci(ci: CanvasItem, id: String, c: Vector2) -> void:
 
 func _enter_tree() -> void:
 	add_child(FX.Layer.new(_foreground, 5))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	layers = ["sardine", "cheese"]
+	_react()

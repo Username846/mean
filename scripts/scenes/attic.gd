@@ -101,7 +101,12 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func _boo() -> void:
-	if cooldown > 0 or state in ["scared", "gone"]:
+	if cooldown > 0 or state == "heart":
+		return
+	if state in ["scared", "gone"]:
+		# scared again while still fleeing: too much for his heart
+		if bro.position.x > 0 and bro.position.x < 1280:
+			_heart_attack()
 		return
 	cooldown = 1.0
 	var sx: float = SPOTS[spot].x
@@ -137,6 +142,26 @@ func _boo() -> void:
 	elif power > 0.6:
 		label = "TERRIFYING!"
 	add_rage(r, bro.head_pos() + Vector2(0, -80), label)
+
+
+func _heart_attack() -> void:
+	state = "heart"
+	Game.sfx("sting", 0.0)
+	Game.sfx("boo", 0.0)
+	flash = 1.0
+	shake(16)
+	bro.set_mood("scared")
+	bro.hair_up = 1.0
+	bro.arm_l = -0.5
+	bro.arm_r = -0.5
+	bro.elbow_l = -1.5
+	bro.elbow_r = -1.5
+	bro.say("heart")
+	injure("Heart attack from a double scare", 4.5)
+	get_tree().create_timer(1.6).timeout.connect(func():
+		bro.set_mood("ko")
+		bro.fall_over(dir, 30.0)
+		Game.sfx("thud", 0.0))
 
 
 func tick(dt: float) -> void:
@@ -292,3 +317,10 @@ func _draw_eyes(ci: CanvasItem) -> void:
 	FX.rounded_rect(ci, Rect2(20, 610, 280, 30), Color(0, 0, 0, 0.6), 10)
 	FX.rounded_rect(ci, Rect2(20, 610, 280 * power, 30), Color("#7a3ac2").lerp(Color("#ff3bd0"), power), 10)
 	ci.draw_string(ThemeDB.fallback_font, Vector2(24, 600), "SCARE POWER", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color.WHITE)
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	bro.position.x = 700.0
+	state = "gone"
+	_heart_attack()

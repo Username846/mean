@@ -28,6 +28,8 @@ class Bubble extends Node2D:
 	var label: Label
 	var size := Vector2.ZERO
 	var tint := Color.WHITE
+	var follow: Callable     ## optional: returns where the bubble sits
+	var tip_at: Callable     ## optional: returns where the tail points
 
 	func _init(t: Node2D, txt: String, dur: float, off: Vector2, col := Color.WHITE) -> void:
 		target = t
@@ -57,7 +59,7 @@ class Bubble extends Node2D:
 		size = label.get_combined_minimum_size() + Vector2(24, 16)
 		label.size = size - Vector2(24, 16)
 		label.position = -size / 2.0 + Vector2(12, 8)
-		var p := target.global_position + offset
+		var p: Vector2 = follow.call() if follow.is_valid() else target.global_position + offset
 		p.x = clampf(p.x, size.x / 2 + 8, 1280 - size.x / 2 - 8)
 		p.y = clampf(p.y, size.y / 2 + 70, 720 - size.y / 2 - 8)
 		global_position = p
@@ -75,7 +77,8 @@ class Bubble extends Node2D:
 		sb.set_corner_radius_all(16)
 		sb.border_color = Color(0.12, 0.08, 0.16)
 		sb.set_border_width_all(3)
-		var tip := target.global_position + offset * 0.68 - global_position
+		var aim: Vector2 = tip_at.call() if tip_at.is_valid() else target.global_position + offset * 0.68
+		var tip := aim - global_position
 		tip = tip.limit_length(size.y / 2 + 40)
 		var base_y := size.y / 2 - 2
 		if tip.y < 0:
@@ -130,6 +133,38 @@ class Burst extends Node2D:
 				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 			else:
 				draw_circle(p.p, p.s, c)
+
+
+## Cartoon blood puddle that spreads out from a point.
+class Puddle extends Node2D:
+	var size := 0.0
+	var max_size := 90.0
+	var age := 0.0
+
+	func _init(pos: Vector2, max_rx := 90.0, z := 0) -> void:
+		position = pos
+		max_size = max_rx
+		z_index = z
+
+	func _process(dt: float) -> void:
+		age += dt
+		size = max_size * (1.0 - exp(-age * 0.9))
+		queue_redraw()
+
+	func _draw() -> void:
+		var col := Color("#b0101e")
+		draw_colored_polygon(FX_ellipse(Vector2.ZERO, size, size * 0.28), col)
+		for i in 5:
+			var o := Vector2(cos(i * 1.9) * size * 0.8, sin(i * 1.3) * size * 0.2)
+			draw_circle(o, size * 0.18, col)
+		draw_colored_polygon(FX_ellipse(Vector2(-size * 0.25, -size * 0.06), size * 0.3, size * 0.06), Color(1, 0.5, 0.5, 0.45))
+
+	static func FX_ellipse(c: Vector2, rx: float, ry: float) -> PackedVector2Array:
+		var pts := PackedVector2Array()
+		for i in 24:
+			var a := TAU * i / 24
+			pts.append(c + Vector2(cos(a) * maxf(rx, 1), sin(a) * maxf(ry, 1)))
+		return pts
 
 
 ## "+25 MEAN!" style floating text.

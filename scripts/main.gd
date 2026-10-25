@@ -20,6 +20,9 @@ func _smoke() -> void:
 	var ids := ["title", "menu"]
 	for s in Game.SCENES:
 		ids.append(s.id)
+	Game.hospital_from = "kitchen"
+	Game.hospital_cause = "Smoke test"
+	ids.append("hospital")
 	ids.append("ending")
 	for id in ids:
 		if not ResourceLoader.exists("res://scripts/%s.gd" % id) and not ResourceLoader.exists("res://scripts/scenes/%s.gd" % id):
@@ -51,10 +54,15 @@ func _shot(id: String, args: PackedStringArray) -> void:
 			wait = int(a.substr(7))
 		elif a.begins_with("--debug="):
 			dbg = int(a.substr(8))
+	if id == "hospital":
+		Game.hospital_from = "kitchen"
+		Game.hospital_cause = "Cracked skull from falling pots and pans"
 	Game._swap(id)
 	for i in 20:
 		await get_tree().process_frame
-	if dbg > 0 and Game.current.has_method("debug_state"):
+	if dbg == 9 and Game.current.has_method("debug_injure"):
+		Game.current.debug_injure()
+	elif dbg > 0 and Game.current.has_method("debug_state"):
 		Game.current.debug_state(dbg)
 	for i in wait:
 		await get_tree().process_frame

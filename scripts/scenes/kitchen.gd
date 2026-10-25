@@ -14,6 +14,8 @@ var duck := 0.0
 var pan := 0.0
 var wipe_t := 0.0
 var mouse := Vector2(640, 360)
+var open_cup := -1
+var pots: Array = []
 
 
 func _init() -> void:
@@ -55,6 +57,8 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func tick(dt: float) -> void:
+	for pt in pots:
+		pt.t = minf(1.0, pt.t + dt / 0.45)
 	cooldown -= dt
 	_bro_ai(dt)
 	for p in pies.duplicate():
@@ -71,7 +75,40 @@ func tick(dt: float) -> void:
 			bro.pie = maxf(0.0, bro.pie - dt * 0.15)
 
 
+func _pots_fall(i: int) -> void:
+	open_cup = i
+	Game.sfx("splat", 0.1, -4)
+	Game.sfx("creak", 0.1, -4, 1.5)
+	state = "walk"
+	target_x = bro.position.x
+	var from := _cupboard(i).get_center() + Vector2(0, 50)
+	for k in 3:
+		pots.append({"from": from + Vector2((k - 1) * 30, 0), "t": -k * 0.12, "kind": k, "rot": randf_range(-6, 6)})
+	injure("Cracked skull from falling pots and pans", 4.0)
+	get_tree().create_timer(0.45).timeout.connect(func():
+		Game.sfx("pans", 0.0)
+		Game.sfx("crack", 0.0)
+		shake(14)
+		bro.set_mood("hurt")
+		bro.say("aaah")
+		burst(bro.head_pos() + Vector2(0, -40), 20, [Color("#ffe14a"), Color.WHITE], 300, 6, 800, 0.7))
+	get_tree().create_timer(1.6).timeout.connect(func():
+		bro.set_mood("ko")
+		var tw := create_tween()
+		tw.tween_property(bro, "rotation", 0.5, 0.5).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(bro, "position:y", bro.position.y + 110, 0.5)
+		Game.sfx("thud", 0.0)
+		get_tree().create_timer(0.5).timeout.connect(func():
+			blood(Vector2(bro.head_pos().x + 30, COUNTER_Y - 6), 110, 6)))
+
+
 func _bro_ai(dt: float) -> void:
+	if injured:
+		duck = 0.0
+		pan = 0.0
+		bro.arm_r = 0.25
+		bro.elbow_r = 0.3
+		return
 	state_t -= dt
 	var speed := 260.0 + rage * 4.0
 	match state:
@@ -106,7 +143,17 @@ func _pan_rect() -> Rect2:
 	return Rect2(hp + Vector2(-70, -70), Vector2(140, 150))
 
 
+func _cupboard(i: int) -> Rect2:
+	return Rect2(60 + i * 180, 70, 160, 120)
+
+
 func _land(p: Vector2) -> void:
+	# pie into the cupboard right above his head: pots and pans come down
+	for i in 5:
+		var cup := _cupboard(i)
+		if cup.grow(10).has_point(p) and absf(bro.position.x - cup.get_center().x) < 120 and duck < 0.5:
+			_pots_fall(i)
+			return
 	var hp := bro.head_pos()
 	var head_hit := p.distance_to(hp) < 62 and duck < 0.5
 	var body_hit := Rect2(bro.position.x - 50, hp.y + 40, 100, maxf(0.0, COUNTER_Y - hp.y - 40)).has_point(p) and duck < 0.5
@@ -151,8 +198,13 @@ func _draw() -> void:
 				draw_rect(Rect2(x * 40, y * 40, 40, 40), Color("#c8e8e3"))
 	# cabinets
 	for i in 5:
-		rrect(Rect2(60 + i * 180, 70, 160, 120), Color("#e88f5a"), 10, Color("#a85a30"), 4)
-		draw_circle(Vector2(140 + i * 180, 170), 7, Color("#fff2c8"))
+		if i == open_cup:
+			rrect(_cupboard(i), Color("#5a3420"), 10, Color("#a85a30"), 4)
+			draw_colored_polygon(PackedVector2Array([Vector2(60 + i * 180, 70), Vector2(20 + i * 180, 90),
+				Vector2(20 + i * 180, 210), Vector2(60 + i * 180, 190)]), Color("#e88f5a"))
+		else:
+			rrect(_cupboard(i), Color("#e88f5a"), 10, Color("#a85a30"), 4)
+			draw_circle(Vector2(140 + i * 180, 170), 7, Color("#fff2c8"))
 	# fridge
 	rrect(Rect2(1010, 90, 220, 380), Color("#f4f7fb"), 18, Color("#9aa6b8"), 5)
 	draw_line(Vector2(1010, 230), Vector2(1230, 230), Color("#9aa6b8"), 4)
@@ -186,6 +238,25 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_circle(c, 78, Color("#2d2d33"))
 		ci.draw_circle(c, 66, Color("#45454f"))
 		ci.draw_arc(c + Vector2(-18, -18), 40, PI, PI * 1.4, 8, Color(1, 1, 1, 0.3), 6)
+	# falling pots and pans
+	for pt in pots:
+		var tt: float = clampf(pt.t, 0.0, 1.0)
+		if pt.t < 0:
+			continue
+		var target := bro.head_pos() + Vector2((pt.kind - 1) * 40, -30)
+		var pos: Vector2 = (pt.from as Vector2).lerp(target, tt * tt)
+		if tt >= 1.0:
+			pos = target + Vector2((pt.kind - 1) * 50, 60 + pt.kind * 10)
+		ci.draw_set_transform(pos, float(pt.rot) * tt, Vector2.ONE)
+		if pt.kind == 1:
+			ci.draw_circle(Vector2.ZERO, 34, Color("#3a3a44"))
+			ci.draw_circle(Vector2.ZERO, 26, Color("#55555f"))
+			ci.draw_line(Vector2(30, 0), Vector2(80, 0), Color("#3a3a44"), 10)
+		else:
+			FX.rounded_rect(ci, Rect2(-30, -24, 60, 48), Color("#b8b8c8"), 8)
+			ci.draw_line(Vector2(-42, -16), Vector2(-30, -16), Color("#888"), 8)
+			ci.draw_line(Vector2(30, -16), Vector2(42, -16), Color("#888"), 8)
+		ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	# pies in flight
 	for p in pies:
 		var t: float = p.t
@@ -205,3 +276,9 @@ func _foreground(ci: CanvasItem) -> void:
 func _enter_tree() -> void:
 	var fg := FX.Layer.new(_foreground, 5)
 	add_child(fg)
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	bro.position.x = 320.0
+	_pots_fall(1)

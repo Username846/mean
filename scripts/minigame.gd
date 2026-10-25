@@ -21,6 +21,7 @@ var _chatter_t := 6.0
 var time := 0.0
 var _shake := 0.0
 var fx_layer: Node2D
+var injured := false
 
 
 func _ready() -> void:
@@ -205,6 +206,55 @@ func spawn_bro(pos: Vector2, sc := 1.0) -> Bro:
 	return bro
 
 
+## Starts the "oh no, he's hurt" sequence: locks input, then after `delay`
+## seconds shows the emergency banner and heads to the hospital cutscene.
+func injure(cause: String, delay := 3.0) -> void:
+	if injured:
+		return
+	injured = true
+	set_process_unhandled_input(false)
+	Game.injuries[scene_id] = true
+	Game.hospital_from = scene_id
+	Game.hospital_cause = cause
+	Game.save_game()
+	get_tree().create_timer(delay).timeout.connect(_emergency)
+
+
+func _emergency() -> void:
+	Game.stop_music()
+	Game.sfx("siren", 0.0, -2)
+	Game.voice("mom_ambulance")
+	var flash := ColorRect.new()
+	flash.color = Color(1, 0, 0, 0.0)
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hud.add_child(flash)
+	var tw := flash.create_tween().set_loops(8)
+	tw.tween_property(flash, "color:a", 0.35, 0.22)
+	tw.tween_property(flash, "color:a", 0.05, 0.22)
+	var l := Game.make_label("OH NO!\nHe's got to go to the HOSPITAL!", 54, Color.WHITE)
+	l.add_theme_color_override("font_outline_color", Color("#a00010"))
+	l.add_theme_constant_override("outline_size", 18)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.size = Vector2(1280, 160)
+	l.position = Vector2(0, 220)
+	l.pivot_offset = Vector2(640, 80)
+	hud.add_child(l)
+	l.scale = Vector2(0.2, 0.2)
+	l.create_tween().tween_property(l, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	get_tree().create_timer(3.8).timeout.connect(func(): Game.goto("hospital"))
+
+
+## Spreading cartoon blood puddle at `pos`.
+## With z 0 it goes under Bro (drawn just before him); a higher z puts it on
+## top of foreground layers such as the kitchen counter.
+func blood(pos: Vector2, size := 90.0, z := 0) -> void:
+	var p := FX.Puddle.new(pos, size, z)
+	add_child(p)
+	if z == 0 and is_instance_valid(bro):
+		move_child(p, bro.get_index())
+
+
 ## Bro occasionally says something while idle. Override `idle_lines()`.
 func idle_lines() -> Array:
 	return ["whatdoing", "leavemealone", "ugh"]
@@ -218,7 +268,7 @@ func _process(dt: float) -> void:
 		_shake = maxf(0.0, _shake - dt * 40.0)
 		if _shake <= 0:
 			position = Vector2.ZERO
-	if is_instance_valid(bro):
+	if is_instance_valid(bro) and not injured:
 		bro.red = rage / 100.0
 		_chatter_t -= dt
 		if _chatter_t <= 0:

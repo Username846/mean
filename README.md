@@ -23,11 +23,30 @@ Works on **PC (mouse)** and **phones/tablets (touch)**: tap where you'd click, a
 
 Fill his **BRO RAGE** meter in a location to earn its star. Get all 10 stars to see the ending. You also collect *mean points* that move you up the ranks, from "Innocent Angel" all the way to "LEGENDARY Little Sibling". Your progress saves automatically in the browser.
 
+### Secret hospital trips
+
+Each location also hides one way to *seriously* hurt him by accident. That sets off an emergency: Mom yells for an ambulance, it races to the hospital, and you see him bandaged up in bed (the doctor says he'll be okay). The map shows a red cross on every location where you've found it.
+
+<details><summary>Spoilers: how to find all 10</summary>
+
+1. **Living Room:** throw him into the TV.
+2. **Kitchen:** hit the cupboard right above his head with a pie.
+3. **Backyard:** hit the tree with a balloon while he's standing under it.
+4. **Bedroom:** after he wakes up, draw on his eyes.
+5. **Game Room:** drag him in front of the TV, then click the TV.
+6. **Cafeteria:** hide sardines in his sandwich.
+7. **Snow Park:** pack a rock into your snowball, then hit him with it.
+8. **Beach:** keep pouring sea water on his face while he's buried.
+9. **Haunted Attic:** scare him again while he's running away.
+10. **Carnival:** hit the sign above him 4 times.
+
+</details>
+
 ## Audio
 
-* **Synthesized voices:** all 84 voice lines (the brother, an announcer and Mom) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
-* **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu and the ending (12 in total).
-* **Sound effects:** 41 procedurally generated sounds (splats, splashes, boings and, yes, a whoopee cushion).
+* **Synthesized voices:** all 94 voice lines (the brother, an announcer, Mom, a paramedic and a doctor) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
+* **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu, the hospital and the ending (13 in total).
+* **Sound effects:** 51 procedurally generated sounds (splats, splashes, boings, sirens and, yes, a whoopee cushion).
 
 Audio starts after your first click or tap, because browsers require that. On iPhone, the ring/silent switch has to be on ring to hear web audio. iPhone Safari doesn't support fullscreen for web pages, so the Fullscreen button is hidden there.
 

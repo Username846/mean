@@ -26,6 +26,9 @@ var total_mean := 0
 var stars := {}
 var best := {}
 var seen_ending := false
+var injuries := {}           ## scene id -> true once its hospital accident was found
+var hospital_from := ""
+var hospital_cause := ""
 
 var music: AudioStreamPlayer
 var voice_player: AudioStreamPlayer
@@ -187,6 +190,11 @@ func play_music(id: String) -> void:
 	music.play()
 
 
+func stop_music() -> void:
+	_music_id = ""
+	music.stop()
+
+
 func toggle_music() -> bool:
 	music_on = not music_on
 	music.volume_db = 0.0 if music_on else -80.0
@@ -234,6 +242,7 @@ func save_game() -> void:
 	cf.set_value("game", "best", best)
 	cf.set_value("game", "seen_ending", seen_ending)
 	cf.set_value("game", "volume", volume)
+	cf.set_value("game", "injuries", injuries)
 	cf.save(SAVE_PATH)
 
 
@@ -246,6 +255,7 @@ func load_game() -> void:
 	best = cf.get_value("game", "best", {})
 	seen_ending = cf.get_value("game", "seen_ending", false)
 	volume = cf.get_value("game", "volume", 0.8)
+	injuries = cf.get_value("game", "injuries", {})
 
 
 func reset_save() -> void:
@@ -253,6 +263,7 @@ func reset_save() -> void:
 	stars = {}
 	best = {}
 	seen_ending = false
+	injuries = {}
 	save_game()
 
 

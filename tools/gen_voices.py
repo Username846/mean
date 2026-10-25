@@ -17,6 +17,7 @@ VOICES = {
     "bro": ["-v", "en-us+m3", "-p", "78", "-s", "165", "-a", "180"],
     "you": ["-v", "en-us+m1", "-p", "28", "-s", "140", "-a", "180"],
     "mom": ["-v", "en-us+f2", "-p", "60", "-s", "150", "-a", "180"],
+    "doc": ["-v", "en-us+m4", "-p", "40", "-s", "150", "-a", "180"],
 }
 
 # id: (speaker, spoken text, subtitle shown on screen)
@@ -98,6 +99,17 @@ LINES = {
     # --- ending
     "truce": ("bro", "Okay okay! I'm sorry I was mean to you. Truce?",
               "Okay, okay! I'm sorry I was mean to you. Truce?"),
+    # --- emergencies
+    "myeyes": ("bro", "Aaaah! My eyes! My eyes!", "AAAAH! MY EYES! MY EYES!"),
+    "cantbreathe": ("bro", "Can't. Breathe.", "Can't... breathe..."),
+    "heart": ("bro", "Ack! My heart!", "ACK! My HEART!"),
+    "help": ("bro", "Help! Help! Glub!", "HELP! HELP! GLUB!"),
+    "zapped": ("bro", "Aaaaaaaaah!", "AAAAAAAZZZZZT!!!"),
+    "mom_ambulance": ("mom", "Oh no! Somebody call an ambulance!", "MOM: Oh no! Somebody call an AMBULANCE!"),
+    "medic": ("doc", "Hang in there, kid! We've got you!", "PARAMEDIC: Hang in there, kid! We've got you!"),
+    "doctor_ok": ("doc", "He's going to be okay. But no more pranks!", "DOCTOR: He's going to be okay. But NO more pranks!"),
+    "hosp_bro": ("bro", "Ow. I am so telling Mom about this one.", "Ow... I am SO telling Mom about this one."),
+    "emergency": ("you", "Emergency!", "EMERGENCY!"),
     # --- mom
     "mom_stop": ("mom", "Kids! Play nice!", "MOM: Kids! Play nice!"),
     "mom_dinner": ("mom", "Dinner's ready!", "MOM: Dinner's ready!"),

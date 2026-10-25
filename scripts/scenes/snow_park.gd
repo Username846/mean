@@ -17,6 +17,9 @@ var splats: Array = []
 var snowmen := {}
 var flakes: Array = []
 var mouse := Vector2.ZERO
+var held := 0                ## 0 nothing, 1 snowball, 2 snowball with a rock inside
+const PILE := Vector2(110, 655)
+const ROCKS := [Vector2(330, 692), Vector2(560, 700), Vector2(820, 694), Vector2(1060, 700)]
 
 
 func _init() -> void:
@@ -24,7 +27,7 @@ func _init() -> void:
 
 
 func hint() -> String:
-	return "Click Bro to hit him with a snowball! Click snow on your screen to wipe it."
+	return "Grab a snowball from the pile (lower left), then click Bro to throw it!"
 
 
 func idle_lines() -> Array:
@@ -36,6 +39,7 @@ func setup() -> void:
 	for i in 70:
 		flakes.append(Vector2(randf() * 1280, randf() * 720))
 	get_tree().create_timer(1.5).timeout.connect(func(): bro.say("snowfight"))
+	hint_label.position.y = 64
 
 
 func debug_state(n: int) -> void:
@@ -60,7 +64,26 @@ func _unhandled_input(e: InputEvent) -> void:
 				Game.sfx("wipe")
 				burst(e.position, 14, [Color.WHITE], 250, 8, 900, 0.6)
 				return
-		balls.append({"from": Vector2(640 + randf_range(-40, 40), 760), "to": e.position, "t": 0.0})
+		if e.position.distance_to(PILE) < 80:
+			held = 1
+			Game.sfx("crunch", 0.1)
+			FX.float_text(fx_layer, PILE + Vector2(60, -60), "Got a snowball!", Color.WHITE, 24)
+			return
+		for r in ROCKS:
+			if e.position.distance_to(r) < 34:
+				if held == 1:
+					held = 2
+					Game.sfx("click", 0.0)
+					FX.float_text(fx_layer, r + Vector2(0, -50), "Rock packed inside...", Color("#c8c8d0"), 24)
+				elif held == 0:
+					FX.float_text(fx_layer, r + Vector2(0, -50), "Make a snowball first!", Color.WHITE, 22)
+				return
+		if held == 0:
+			Game.sfx("click", 0.0, -6)
+			FX.float_text(fx_layer, PILE + Vector2(80, -70), "Grab a snowball here!", Color("#ffde3b"), 26)
+			return
+		balls.append({"from": Vector2(640 + randf_range(-40, 40), 760), "to": e.position, "t": 0.0, "rock": held == 2})
+		held = 0
 		Game.sfx("throw", 0.2)
 
 
@@ -76,6 +99,8 @@ func _pick_fort() -> void:
 func tick(dt: float) -> void:
 	state_t -= dt
 	var speed := 1.0 + rage / 80.0
+	if injured:
+		state = "hurt"
 	match state:
 		"hidden":
 			rise = move_toward(rise, 0.0, dt * 6)
@@ -101,7 +126,8 @@ func tick(dt: float) -> void:
 				Game.sfx("throw", 0.1, 0, 0.8)
 			if state_t <= 0:
 				_duck(randf_range(0.4, 1.2) / speed)
-	bro.position.y = BASE + 260 * (1.0 - rise) + (sin(time * 8) * 3 if rise > 0.9 else 0.0)
+	if state != "hurt":
+		bro.position.y = BASE + 260 * (1.0 - rise) + (sin(time * 8) * 3 if rise > 0.9 else 0.0)
 	bro.arm_r = 2.8 if throwing else 0.3
 	bro.elbow_r = 1.0 if throwing else 0.3
 	bro.snow = maxf(0.0, bro.snow - dt * 0.05)
@@ -113,7 +139,7 @@ func tick(dt: float) -> void:
 		b.t += dt / 0.28
 		if b.t >= 1.0:
 			balls.erase(b)
-			_land(b.to)
+			_land(b.to, b.rock)
 	for b in incoming.duplicate():
 		b.t += dt / 0.6
 		if b.t >= 1.0:
@@ -134,7 +160,7 @@ func _duck(wait: float) -> void:
 	throwing = false
 
 
-func _land(p: Vector2) -> void:
+func _land(p: Vector2, rock := false) -> void:
 	burst(p, 14, [Color.WHITE, Color("#dff0ff")], 260, 6, 900, 0.5)
 	Game.sfx("crunch", 0.2)
 	# snowman?
@@ -151,6 +177,9 @@ func _land(p: Vector2) -> void:
 		var hp := bro.head_pos()
 		var head := p.distance_to(hp) < 48 * SC + 14
 		var body := Rect2(bro.position.x - 50 * SC, hp.y, 100 * SC, 140 * SC).has_point(p)
+		if (head or body) and rock:
+			_rock_hit(p)
+			return
 		if head or body:
 			Game.sfx("bonk", 0.1, -3, 1.3)
 			bro.snow = minf(1.0, bro.snow + 0.3)
@@ -161,6 +190,26 @@ func _land(p: Vector2) -> void:
 				bro.say(["brrr", "cold", "ow", "grr", "notfunny"].pick_random(), false)
 			_duck(randf_range(0.5, 1.0))
 			return
+
+
+func _rock_hit(p: Vector2) -> void:
+	state = "hurt"
+	rise = 1.0
+	bro.position.y = BASE
+	throwing = false
+	Game.sfx("crack", 0.0)
+	Game.sfx("bonk", 0.0, 0, 0.7)
+	shake(14)
+	bro.set_mood("hurt")
+	bro.say("aaah")
+	burst(p, 24, [Color("#ffe14a"), Color.WHITE, Color("#8a8a92")], 320, 6, 900, 0.8)
+	injure("Cracked head from a rock hidden in a snowball", 4.0)
+	get_tree().create_timer(0.9).timeout.connect(func():
+		bro.set_mood("ko")
+		bro.fall_over(1.0, 130.0)
+		Game.sfx("thud", 0.0, -4)
+		get_tree().create_timer(0.6).timeout.connect(func():
+			blood(bro.head_pos() + Vector2(10, 55), 75, 6)))
 
 
 func _sm_offset(t: float) -> float:
@@ -202,12 +251,28 @@ func _foreground(ci: CanvasItem) -> void:
 	ci.draw_rect(Rect2(0, BASE + 40, 1280, 200), Color("#f4f9ff"))
 	for f in flakes:
 		ci.draw_circle(f, 3, Color(1, 1, 1, 0.9))
+	# snowball pile + rocks
+	for k in 7:
+		var o := Vector2([-40, 0, 40, -20, 20, 0, -60][k], [0, 0, 0, -30, -30, -58, 4][k])
+		ci.draw_circle(PILE + o, 26, Color.WHITE)
+		ci.draw_arc(PILE + o, 26, 0, TAU, 16, Color("#b0c4dc"), 2)
+	for r in ROCKS:
+		ci.draw_colored_polygon(FX.ellipse(r, 22, 14), Color("#7a7a84"))
+		ci.draw_colored_polygon(FX.ellipse(r + Vector2(-6, -4), 8, 4), Color("#a0a0aa"))
+	# what you're holding
+	if held > 0:
+		ci.draw_circle(mouse + Vector2(26, 26), 14, Color.WHITE)
+		ci.draw_arc(mouse + Vector2(26, 26), 14, 0, TAU, 12, Color("#b0c4dc"), 2)
+		if held == 2:
+			ci.draw_circle(mouse + Vector2(29, 28), 5, Color("#7a7a84"))
 	# my snowballs
 	for b in balls:
 		var t: float = b.t
 		var p: Vector2 = (b.from as Vector2).lerp(b.to, t) + Vector2(0, -sin(t * PI) * 80)
 		ci.draw_circle(p, lerpf(30, 12, t), Color.WHITE)
 		ci.draw_arc(p, lerpf(30, 12, t), 0, TAU, 16, Color("#b0c4dc"), 2)
+		if b.rock:
+			ci.draw_circle(p + Vector2(4, 3) * lerpf(1, 0.4, t), lerpf(9, 4, t), Color("#7a7a84"))
 	# his snowballs, flying at the screen
 	for b in incoming:
 		var t: float = b.t
@@ -227,3 +292,10 @@ func _foreground(ci: CanvasItem) -> void:
 
 func _enter_tree() -> void:
 	add_child(FX.Layer.new(_foreground, 5))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	state = "up"
+	rise = 1.0
+	_rock_hit(bro.head_pos())

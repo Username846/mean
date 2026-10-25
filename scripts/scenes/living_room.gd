@@ -34,6 +34,10 @@ var cushion := Vector2(-200, FLOOR)
 var cushion_squash := 0.0
 var cushion_cd := 0.0
 var tool_buttons := {}
+var shocked := 0.0
+var hair_up_ragdoll := 0.0
+var tv_broken := false
+const TV_RECT := Rect2(950, 330, 260, 180)
 
 
 func _init() -> void:
@@ -294,6 +298,8 @@ func _collide() -> void:
 
 
 func _impact(i: int, speed: float) -> void:
+	if injured:
+		return
 	hit_cd = 0.35
 	stun = maxf(stun, 1.6)
 	stand = 0.0
@@ -305,6 +311,24 @@ func _impact(i: int, speed: float) -> void:
 	burst(pos[i], 10, [Color(1, 1, 1, 0.8), Color("#ffde3b")], 250, 5, 600, 0.5)
 	if randf() < 0.6:
 		bro.say(["ow", "ouch", "oof", "notfunny", "mom", "telling"].pick_random(), false)
+
+
+func _electrocute() -> void:
+	tv_broken = true
+	shocked = 2.2
+	stun = 1e9
+	stand = 0.0
+	hair_up_ragdoll = 1.0
+	for i in pos.size():
+		prev[i] = pos[i] + Vector2(6, 2)
+	Game.sfx("zap", 0.0)
+	Game.sfx("crash", 0.0, -6)
+	shake(16)
+	bro.set_mood("scared")
+	bro.say("zapped")
+	burst(TV_RECT.get_center(), 50, [Color("#fff36a"), Color("#8ae0ff"), Color.WHITE], 600, 5, 700, 1.0)
+	get_tree().create_timer(2.2).timeout.connect(func(): bro.set_mood("ko"))
+	injure("Electrocuted by the TV", 4.0)
 
 
 func _update_balls(dt: float) -> void:
@@ -380,8 +404,16 @@ func tick(dt: float) -> void:
 	if tickle > 0.2:
 		for i in [LHA, RHA, LFT, RFT]:
 			prev[i] += Vector2(randf_range(-2.5, 2.5), randf_range(-2.5, 2.5))
+	# thrown into the TV: electrocuted
+	shocked = maxf(0.0, shocked - dt)
+	if not injured and grabbed < 0:
+		for i in [HEAD, NECK, PELVIS]:
+			var spd := (pos[i] - prev[i]).length() * 60.0 * SUB
+			if TV_RECT.grow(RADII[i] * 0.5).has_point(pos[i]) and spd > 500.0:
+				_electrocute()
+				break
 	# whoopee cushion
-	if cushion.x > 0 and cushion_cd <= 0:
+	if cushion.x > 0 and cushion_cd <= 0 and not injured:
 		var squashed := false
 		for i in [PELVIS, NECK, HEAD]:
 			var v := (pos[i] - prev[i]).y
@@ -427,9 +459,18 @@ func _draw() -> void:
 	# TV
 	draw_rect(Rect2(960, 520, 240, 120), Color("#6b4428"))
 	rrect(Rect2(950, 330, 260, 180), Color("#222"), 14)
-	var tvc := Color.from_hsv(fmod(time * 0.1, 1.0), 0.5, 0.9)
-	draw_rect(Rect2(966, 346, 228, 148), tvc)
-	draw_circle(Vector2(1080, 420 + sin(time * 3) * 20), 24, tvc.inverted())
+	if tv_broken:
+		draw_rect(Rect2(966, 346, 228, 148), Color("#111"))
+		var c := Vector2(1060, 410)
+		for k in 7:
+			var a := k * 0.9 + 0.3
+			draw_polyline(PackedVector2Array([c, c + Vector2.from_angle(a) * 50 + Vector2(10, -8), c + Vector2.from_angle(a) * 110]), Color("#ccc"), 2)
+		if randf() < 0.3:
+			draw_line(c, c + Vector2(randf_range(-60, 60), randf_range(-40, 40)), Color("#fff36a"), 3)
+	else:
+		var tvc := Color.from_hsv(fmod(time * 0.1, 1.0), 0.5, 0.9)
+		draw_rect(Rect2(966, 346, 228, 148), tvc)
+		draw_circle(Vector2(1080, 420 + sin(time * 3) * 20), 24, tvc.inverted())
 	# lamp
 	draw_line(Vector2(860, FLOOR), Vector2(860, 380), Color("#444"), 6)
 	draw_colored_polygon(PackedVector2Array([Vector2(820, 380), Vector2(900, 380), Vector2(880, 320), Vector2(840, 320)]), Color("#ffb347"))
@@ -478,8 +519,17 @@ func _draw_ragdoll() -> void:
 		draw_circle(pos[arm[1]], 14, skin)
 	var up := (pos[HEAD] - pos[NECK])
 	draw_set_transform(pos[HEAD], up.angle() + PI / 2, Vector2.ONE)
-	Bro.draw_head(self, Vector2.ZERO, 48, bro.mood, bro.look, bro._blink > 0, red, {"t": time})
+	Bro.draw_head(self, Vector2.ZERO, 48, bro.mood, bro.look, bro._blink > 0, red, {"t": time, "hair_up": hair_up_ragdoll})
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	if shocked > 0:
+		# crackling electricity all over him
+		for k in 6:
+			var a: Vector2 = pos[randi() % pos.size()]
+			var b: Vector2 = pos[randi() % pos.size()]
+			var pts := PackedVector2Array()
+			for j in 7:
+				pts.append(a.lerp(b, j / 6.0) + Vector2(randf_range(-18, 18), randf_range(-18, 18)))
+			draw_polyline(pts, Color("#fff36a") if k % 2 == 0 else Color("#8ae0ff"), 4)
 
 
 func _draw_cursor() -> void:
@@ -506,3 +556,8 @@ func _draw_cursor() -> void:
 			draw_arc(m, 24, 0, TAU, 24, Color(1, 1, 1, 0.8), 3)
 		"cushion":
 			ellipse(Vector2(m.x, FLOOR - 16), 56, 18, Color(1, 0.45, 0.55, 0.4))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	_electrocute()

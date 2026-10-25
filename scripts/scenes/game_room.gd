@@ -16,6 +16,9 @@ var flash := 0.0
 var heal_msg := 0.0
 var said_almost := false
 var mouse := Vector2.ZERO
+var drag_bro := false
+var tv_fall := 0.0
+var tv_wob := 0.0
 
 
 func _init() -> void:
@@ -51,9 +54,42 @@ func debug_state(n: int) -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventMouseMotion:
 		mouse = e.position
-	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
-		if e.position.distance_to(PLUG + Vector2(plug_out * 60, 0)) < 70 or Rect2(700, 520, 160, 140).has_point(e.position):
+		if drag_bro:
+			bro.position.x = clampf(e.position.x, 160.0, 1180.0)
+	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
+		if not e.pressed:
+			drag_bro = false
+			return
+		if TV.grow(16).has_point(e.position):
+			_push_tv()
+		elif Rect2(bro.position.x - 80, 400, 160, 280).has_point(e.position):
+			drag_bro = true
+			Game.sfx("pop")
+			chat(["putmedown", "gaming", "hey"].pick_random())
+		elif e.position.distance_to(PLUG + Vector2(plug_out * 60, 0)) < 70 or Rect2(700, 520, 160, 140).has_point(e.position):
 			_unplug()
+
+
+## Clicking the TV rocks it; if he's sitting right in front, it topples onto him.
+func _push_tv() -> void:
+	if bro.position.x < TV.position.x - 20 or bro.position.x > TV.end.x + 20:
+		Game.sfx("creak", 0.1, -4)
+		tv_wob = 1.0
+		return
+	drag_bro = false
+	state = "off"
+	static_t = 0.0
+	bro.set_mood("scared")
+	bro.say("aaah")
+	injure("Crushed by a falling TV", 4.0)
+	var tw := create_tween()
+	tw.tween_property(self, "tv_fall", 1.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(func():
+		Game.sfx("crash", 0.0)
+		Game.sfx("thud", 0.0)
+		shake(18)
+		bro.set_mood("ko")
+		burst(Vector2(bro.position.x, 640), 40, [Color("#fff36a"), Color("#ccc"), Color("#8ae0ff")], 500, 5, 900, 0.9))
 
 
 func _unplug() -> void:
@@ -86,6 +122,9 @@ func _unplug() -> void:
 
 
 func tick(dt: float) -> void:
+	tv_wob = maxf(0.0, tv_wob - dt * 1.5)
+	if injured:
+		return
 	state_t -= dt
 	static_t -= dt
 	flash = maxf(0.0, flash - dt * 4)
@@ -151,8 +190,12 @@ func _draw() -> void:
 	draw_rect(Rect2(0, 556, 1280, 8), Color("#4a3a60"))
 	# TV stand + TV
 	draw_rect(Rect2(60, 470, 660, 110), Color("#3b2a20"))
-	rrect(TV.grow(16), Color("#111"), 16)
-	_draw_screen()
+	if tv_fall <= 0.0:
+		var piv := Vector2(TV.get_center().x, TV.end.y + 16)
+		draw_set_transform_matrix(Transform2D(sin(time * 25) * 0.04 * tv_wob, piv) * Transform2D(0, -piv))
+		rrect(TV.grow(16), Color("#111"), 16)
+		_draw_screen()
+		draw_set_transform_matrix(Transform2D.IDENTITY)
 	# cord from TV to outlet
 	var plug := PLUG + Vector2(plug_out * 70, plug_out * -10)
 	var pts := PackedVector2Array()
@@ -221,6 +264,19 @@ func _draw_screen() -> void:
 
 
 func _foreground(ci: CanvasItem) -> void:
+	if tv_fall > 0.0:
+		# the TV toppling onto him
+		var c := TV.get_center().lerp(Vector2(bro.position.x, 440), tv_fall)
+		ci.draw_set_transform(c, lerpf(0.0, 0.12, tv_fall), Vector2.ONE)
+		var r := Rect2(-TV.size / 2, TV.size).grow(16)
+		FX.rounded_rect(ci, r, Color("#111"), 16)
+		ci.draw_rect(Rect2(-TV.size / 2, TV.size), Color("#151520"))
+		if tv_fall >= 1.0:
+			for k in 6:
+				var a := k * 1.1
+				ci.draw_polyline(PackedVector2Array([Vector2.ZERO, Vector2.from_angle(a) * 90 + Vector2(12, 8), Vector2.from_angle(a) * 200]), Color("#aaa"), 3)
+		ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		return
 	# controller in Bro's hands
 	var c := bro.position + Vector2(0, -95)
 	FX.rounded_rect(ci, Rect2(c + Vector2(-48, -20), Vector2(96, 40)), Color("#3a3a48"), 18)
@@ -235,3 +291,9 @@ func _foreground(ci: CanvasItem) -> void:
 
 func _enter_tree() -> void:
 	add_child(FX.Layer.new(_foreground, 5))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	bro.position.x = 400.0
+	_push_tv()

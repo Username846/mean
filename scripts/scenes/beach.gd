@@ -20,6 +20,7 @@ var gull_x := -200.0
 var gull_t := 6.0
 var anchor: Node2D
 var tool_buttons := {}
+var face_water := 0
 
 
 func _init() -> void:
@@ -133,11 +134,36 @@ func _splash(p: Vector2) -> void:
 	_wake_up()
 	Game.sfx("splash")
 	burst(p, 30, [Color(0.5, 0.8, 1, 0.9), Color(0.85, 0.95, 1)], 350, 6, 900, 0.8)
+	if buried > 0 and p.distance_to(bro.head_pos()) < 95:
+		# water in the face while he can't move
+		face_water += 1
+		bro.wet = 1.0
+		if face_water >= 4:
+			_drown()
+			return
+		Game.sfx("bubbles", 0.1)
+		bro.set_mood("scared", 1.5)
+		bro.say(["splashed", "cantbreathe", "help"][mini(face_water - 1, 2)])
+		buried = maxf(buried, 4.0)
+		return
 	bro.wet = minf(1.0, bro.wet + 0.35)
 	bro.set_mood("surprised", 1.0)
 	if randf() < 0.6:
 		bro.say(["splashed", "cold"].pick_random(), false)
 	add_rage(5.0 if buried > 0 else 3.0, p, "SPLASH")
+
+
+func _drown() -> void:
+	buried = 1e9
+	bro.set_mood("scared")
+	bro.say("cantbreathe")
+	Game.sfx("choke", 0.0)
+	Game.sfx("bubbles", 0.0)
+	shake(8)
+	injure("Nearly drowned by sea water while buried", 4.5)
+	get_tree().create_timer(2.4).timeout.connect(func():
+		bro.set_mood("ko")
+		Game.sfx("choke", 0.0, -4, 0.8))
 
 
 func tick(dt: float) -> void:
@@ -162,6 +188,7 @@ func tick(dt: float) -> void:
 		buried -= dt
 		bro.flail(0.1)
 		if buried <= 0:
+			face_water = 0
 			for i in 3:
 				level[i] = 0.15
 			burst(bro.to_global(Vector2(0, -110)), 60, [Color("#f0d080"), Color("#e0bc60")], 500, 7, 900, 1.0)
@@ -258,7 +285,7 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_colored_polygon(FX.ellipse(z + Vector2(0, 8), 30 + l * 40, 14 + l * 48, 24), Color(col, minf(1.0, l * 1.6)))
 		for k in int(l * 6):
 			ci.draw_circle(z + Vector2(-35 + k * 14, -l * 30 + (k % 2) * 8), 5, Color("#c9a24a"))
-	if buried > 0:
+	if buried > 0 and not injured:
 		ci.draw_string(ThemeDB.fallback_font, bro.to_global(Vector2(0, -110)) + Vector2(-70, -120), "STUCK! %.0f" % buried,
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#ffde3b"))
 	# seagull
@@ -295,3 +322,10 @@ func _draw_crab(ci: CanvasItem, p: Vector2) -> void:
 
 func _enter_tree() -> void:
 	add_child(FX.Layer.new(_foreground, 5))
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	level = [1.0, 1.0, 1.0]
+	buried = 5.0
+	_drown()

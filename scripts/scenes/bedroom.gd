@@ -24,6 +24,7 @@ var tool_buttons := {}
 var wake_btn: Button
 var wash_btn: Button
 var zzz: Array = []
+var writhe := 0.0
 
 
 func _init() -> void:
@@ -111,6 +112,12 @@ func _unhandled_input(e: InputEvent) -> void:
 			_add_point(e.position)
 	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
 		mouse = e.position
+		if state == "awake" and e.pressed and not tool in STAMPS:
+			# drawing on his open eyes
+			for s: int in [-1, 1]:
+				if _to_local(e.position).distance_to(Vector2(s * 0.38, -0.05)) < 0.3:
+					_scratch_eyes(_to_local(e.position))
+					return
 		if state != "sleep":
 			return
 		if e.pressed:
@@ -206,6 +213,8 @@ func _wake(caught: bool) -> void:
 		create_tween().tween_property(self, "mirror", 1.0, 0.5)
 		Game.sfx("sting", 0.0, -6))
 	get_tree().create_timer(2.6).timeout.connect(func():
+		if injured:
+			return
 		bro.set_mood("angry")
 		shake(8)
 		if caught:
@@ -214,6 +223,22 @@ func _wake(caught: bool) -> void:
 			bro.say("myface")
 		add_rage(score, HC + Vector2(0, -R - 20), "CAUGHT!" if caught else ("MASTERPIECE!" if ink > 15 else "ART!"))
 		wash_btn.visible = true)
+
+
+func _scratch_eyes(at: Vector2) -> void:
+	writhe = 8.0
+	for k in 3:
+		var pts := PackedVector2Array([at + Vector2(-0.15, -0.1 + k * 0.08), at + Vector2(0.15, -0.02 + k * 0.08)])
+		strokes.append({"pts": pts, "col": Color("#c0101e"), "w": 0.03})
+	Game.sfx("marker", 0.0)
+	Game.sfx("sting", 0.0, -4)
+	shake(10)
+	bro.set_mood("eyes")
+	bro.say("myeyes")
+	wash_btn.visible = false
+	get_tree().create_timer(2.6).timeout.connect(func(): bro.say("scream"))
+	get_tree().create_timer(4.6).timeout.connect(func(): bro.say("myeyes"))
+	injure("Scratched eyes with a marker", 6.0)
 
 
 func _new_night() -> void:
@@ -231,6 +256,7 @@ func _new_night() -> void:
 
 func tick(dt: float) -> void:
 	noise = maxf(0.0, noise - dt * 10.0)
+	writhe = maxf(0.0, writhe - dt)
 	if state == "sleep":
 		snore_t -= dt
 		if snore_t <= 0:
@@ -267,6 +293,7 @@ func _draw() -> void:
 	rrect(Rect2(150, 280, 820, 460), Color("#6b4a8a"), 30)
 	ellipse(HC + Vector2(0, 60), 300, 110, Color("#e8e4ff"))
 	var jit := Vector2(sin(time * 30), cos(time * 23)) * 4.0 * minf(stirring, 1.0)
+	jit += Vector2(sin(time * 17) * 30, cos(time * 13) * 10) * minf(writhe, 1.0)
 	var hc := HC + jit
 	var mood := bro.mood
 	Bro.draw_head(self, hc, R, mood, bro.look * 0.3, false, rage / 100.0 if state == "awake" else 0.0, {"t": time})
@@ -322,3 +349,9 @@ func _draw_ink(c: Vector2, r: float, a: float) -> void:
 		draw_polyline(sp, col, w, true)
 		draw_circle(sp[0], w / 2, col)
 		draw_circle(sp[sp.size() - 1], w / 2, col)
+
+
+## Test hook: triggers this location's hospital accident.
+func debug_injure() -> void:
+	_wake(false)
+	_scratch_eyes(Vector2(0.38, -0.05))

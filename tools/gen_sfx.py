@@ -167,6 +167,32 @@ S["giggle"] = cat(*[sweep(700, 500, 0.08, "tri") * env_exp(0.08, 15) * 0.5 for _
 S["cannon"] = mixs(kick(1.0), lowpass(noise(0.5), 0.3) * env_exp(0.5, 7) * 2)
 S["step"] = lowpass(noise(0.06), 0.2) * env_exp(0.06, 50) * 2
 
+# --- emergencies
+S["siren"] = cat(*[mixs(tone("square", m, 0.42, 0.35, duty=0.5, s=1.0, vib=0.3),
+                        tone("saw", m, 0.42, 0.15, s=1.0)) for m in (83, 79) * 4])
+_t = t_(1.3)
+S["zap"] = (np.where((_t * 60) % 1 < 0.5, 1.0, -1.0) * 0.4 + noise(1.3) * (rng.random(len(_t)) > 0.7) * 0.8) \
+    * (0.6 + 0.4 * np.sin(2 * np.pi * 13 * _t)) * np.minimum(1, (1.3 - _t) * 4)
+
+
+def clang(f0):
+    t = t_(1.0)
+    parts = sum(np.sin(2 * np.pi * f0 * k * t) * np.exp(-t * (3 + k * 2)) / k for k in (1, 2.76, 5.4, 8.93))
+    return parts + noise(1.0) * np.exp(-t * 60) * 0.8
+
+
+S["clang"] = clang(520)
+S["pans"] = mixs(clang(480), np.pad(clang(690), (int(0.18 * SR), 0)) * 0.8,
+                 np.pad(clang(380), (int(0.33 * SR), 0)), np.pad(clang(820), (int(0.5 * SR), 0)) * 0.6)
+S["crack"] = mixs(noise(0.06) * env_exp(0.06, 40) * 2, lowpass(noise(0.25), 0.3) * env_exp(0.25, 18),
+                  sweep(180, 60, 0.25) * env_exp(0.25, 14))
+_t = t_(1.6)
+S["choke"] = lowpass(noise(1.6), 0.06) * 4 * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 7 * _t))) \
+    * np.minimum(1, (1.6 - _t) * 3) + sweep(140, 90, 1.6, "tri") * 0.25 * (np.sin(2 * np.pi * 7 * _t) > 0)
+S["beep"] = tone("sine", 95, 0.13, 0.6, d=0.02, s=1.0, r=0.02)
+S["crash"] = mixs(kick(1.0), lowpass(noise(1.2), 0.4) * env_exp(1.2, 4) * 1.5, clang(900) * 0.4,
+                  np.pad(clang(1300), (int(0.12 * SR), 0)) * 0.3)
+
 if __name__ == "__main__":
     for name, data in S.items():
         data = np.asarray(data, dtype=float)

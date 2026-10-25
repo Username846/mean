@@ -15,8 +15,8 @@ func _ready() -> void:
 	head.size = Vector2(1280, 50)
 	head.position = Vector2(0, 14)
 	add_child(head)
-	var info := Game.make_label("Total mean points: %d    Rank: %s    Stars: %d / 10" % [
-		Game.total_mean, Game.rank_title(), Game.star_count()], 24)
+	var info := Game.make_label("Mean points: %d    Rank: %s    Stars: %d/10    Hospital trips: %d/10" % [
+		Game.total_mean, Game.rank_title(), Game.star_count(), Game.injuries.size()], 22)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.size = Vector2(1280, 30)
 	info.position = Vector2(0, 66)
@@ -112,6 +112,16 @@ func _card(s: Dictionary) -> Button:
 	st.position = Vector2(0, 212)
 	st.size = Vector2(224, 24)
 	b.add_child(st)
+	if Game.injuries.has(s.id):
+		var cross := Control.new()
+		cross.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cross.position = Vector2(8, 8)
+		cross.size = Vector2(30, 30)
+		cross.draw.connect(func():
+			cross.draw_circle(Vector2(15, 15), 15, Color.WHITE)
+			cross.draw_rect(Rect2(11, 4, 8, 22), Color("#e8303a"))
+			cross.draw_rect(Rect2(4, 11, 22, 8), Color("#e8303a")))
+		b.add_child(cross)
 	if starred:
 		var star := Control.new()
 		star.mouse_filter = Control.MOUSE_FILTER_IGNORE

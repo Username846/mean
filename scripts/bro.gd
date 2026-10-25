@@ -29,6 +29,8 @@ var pie := 0.0               ## 0..1 pie cream on face
 var wet := 0.0               ## 0..1 soaked
 var snow := 0.0
 var hair_up := 0.0           ## hair standing on end (scared)
+var puff := 0.0              ## 0..1 allergic swelling
+var bandage := 0                 ## 0 none, 1 head wrap, 2 over the eyes
 var shirt_col := SHIRT
 var sitting := false
 var hide_legs := false
@@ -81,12 +83,22 @@ func say(id: String, force := true) -> bool:
 	var col := Color.WHITE
 	if info[0] == "you":
 		col = Color("#fff3a8")
-	var off := Vector2(0, -345 + (60 if sitting else 0)) * absf(scale.y)
-	if bubble_offset != Vector2.ZERO:
-		off = bubble_offset
-	_bubble = FX.Bubble.new(bubble_target if bubble_target else self, info[1], info[2], off, col)
+	if bubble_target:
+		_bubble = FX.Bubble.new(bubble_target, info[1], info[2], bubble_offset, col)
+	else:
+		_bubble = FX.Bubble.new(self, info[1], info[2], Vector2.ZERO, col)
+		_bubble.follow = func(): return head_pos() + Vector2(0, -105 * absf(scale.y) * (1.0 + puff * 0.45))
+		_bubble.tip_at = head_pos
 	get_parent().add_child(_bubble)
 	return true
+
+
+## Topples over sideways (dir +1 = head to the right) and lies there.
+func fall_over(dir := 1.0, lift := 40.0) -> void:
+	bob = false
+	var tw := create_tween()
+	tw.tween_property(self, "rotation", dir * 1.45, 0.55).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(self, "position:y", position.y - lift * absf(scale.y), 0.55)
 
 
 func shake(dur := 0.4) -> void:
@@ -173,8 +185,8 @@ func _draw() -> void:
 		draw_circle(hand, 14, SKIN)
 
 	draw_rect(Rect2(head.x - 12, head.y + 30, 24, 26), SKIN.darkened(0.05))
-	draw_head(self, head, 48, mood, look, _blink > 0, red,
-		{"pie": pie, "wet": wet, "snow": snow, "hair_up": hair_up, "t": t})
+	draw_head(self, head + Vector2(0, -puff * 18), 48 * (1.0 + puff * 0.45), mood, look, _blink > 0, red,
+		{"pie": pie, "wet": wet, "snow": snow, "hair_up": hair_up, "t": t, "puff": puff, "bandage": bandage})
 
 
 static func draw_head(ci: CanvasItem, c: Vector2, r: float, mood: String, look: Vector2,
@@ -218,7 +230,17 @@ static func draw_head(ci: CanvasItem, c: Vector2, r: float, mood: String, look: 
 		eye_r = r * 0.3
 	for s: int in [-1, 1]:
 		var e := Vector2(c.x + s * ex_off, ey)
-		if blink and not mood in ["scared", "surprised", "dizzy"] or mood == "sleep":
+		if mood == "ko":
+			var k := eye_r * 0.75
+			ci.draw_line(e + Vector2(-k, -k), e + Vector2(k, k), INK, r * 0.08)
+			ci.draw_line(e + Vector2(-k, k), e + Vector2(k, -k), INK, r * 0.08)
+		elif mood == "eyes":
+			ci.draw_arc(e + Vector2(0, r * 0.02), eye_r * 0.85, 0.2, PI - 0.2, 10, INK, r * 0.08)
+			for k in 3:
+				var o := Vector2((k - 1) * eye_r * 0.5, 0)
+				ci.draw_line(e + o + Vector2(-eye_r * 0.3, -eye_r * 0.9), e + o + Vector2(eye_r * 0.3, eye_r * 0.8), Color("#d0102a"), r * 0.05)
+			ci.draw_colored_polygon(FX.ellipse(e + Vector2(s * eye_r * 0.4, eye_r + fmod(tt * 60, r * 0.6)), r * 0.05, r * 0.08, 10), Color(0.5, 0.8, 1, 0.9))
+		elif blink and not mood in ["scared", "surprised", "dizzy"] or mood == "sleep":
 			ci.draw_arc(e + Vector2(0, -r * 0.04), eye_r * 0.8, 0.15, PI - 0.15, 10, INK, r * 0.07)
 		elif mood in ["happy", "laugh"]:
 			ci.draw_arc(e + Vector2(0, r * 0.08), eye_r * 0.8, PI + 0.3, TAU - 0.3, 10, INK, r * 0.08)
@@ -287,6 +309,14 @@ static func draw_head(ci: CanvasItem, c: Vector2, r: float, mood: String, look: 
 			ci.draw_colored_polygon(FX.ellipse(m + Vector2(0, r * 0.05), r * 0.17, r * 0.24 * open, 16), Color("#5a1020"))
 		"sleep":
 			ci.draw_colored_polygon(FX.ellipse(m, r * 0.08, r * 0.06, 12), Color("#7a1d2a"))
+		"ko":
+			var pts := PackedVector2Array()
+			for i in 11:
+				pts.append(m + Vector2(lerpf(-r * 0.3, r * 0.3, i / 10.0), sin(i * 1.4) * r * 0.05))
+			ci.draw_colored_polygon(FX.ellipse(m + Vector2(r * 0.12, r * 0.14), r * 0.1, r * 0.13, 12), Color("#ff6f86"))
+			ci.draw_polyline(pts, INK, r * 0.06)
+		"eyes":
+			ci.draw_colored_polygon(FX.ellipse(m + Vector2(0, r * 0.05), r * 0.3, r * 0.22 * (1.0 + sin(tt * 25) * 0.15), 16), Color("#5a1020"))
 		"dizzy":
 			var pts := PackedVector2Array()
 			for i in 11:
@@ -314,6 +344,30 @@ static func draw_head(ci: CanvasItem, c: Vector2, r: float, mood: String, look: 
 		_:
 			ci.draw_arc(m + Vector2(0, -r * 0.12), r * 0.24, 0.5, PI - 0.5, 12, INK, r * 0.06)
 
+	# allergic swelling: blotches and puffy lips
+	var puff: float = ex.get("puff", 0.0)
+	if puff > 0.05:
+		for i in 9:
+			var a := i * 2.3
+			ci.draw_circle(c + Vector2(cos(a), sin(a)) * r * (0.35 + fmod(i * 0.29, 0.5)), r * 0.09, Color(0.85, 0.2, 0.45, 0.6 * puff))
+		ci.draw_colored_polygon(FX.ellipse(m, r * 0.32 * (0.6 + puff), r * 0.16 * (0.6 + puff), 16), Color("#e0607a"))
+	# knocked-out stars
+	if mood == "ko":
+		for i in 3:
+			var a := tt * 3.0 + i * TAU / 3
+			var sp := c + Vector2(cos(a) * r * 0.9, -r * 1.15 + sin(a) * r * 0.25)
+			var star := PackedVector2Array()
+			for k in 10:
+				star.append(sp + Vector2.from_angle(-PI / 2 + k * PI / 5) * r * (0.16 if k % 2 == 0 else 0.07))
+			ci.draw_colored_polygon(star, Color("#ffe14a"))
+	# bandages
+	var band: int = ex.get("bandage", 0)
+	if band == 1:
+		ci.draw_arc(c, r * 0.95, PI * 1.05, PI * 1.95, 16, Color("#f4f4f4"), r * 0.32)
+		ci.draw_line(c + Vector2(-r, -r * 0.35), c + Vector2(r, -r * 0.35), Color("#f4f4f4"), r * 0.28)
+		ci.draw_circle(c + Vector2(r * 0.3, -r * 0.55), r * 0.12, Color("#e02a3a"))
+	elif band == 2:
+		ci.draw_line(c + Vector2(-r * 1.02, -r * 0.05), c + Vector2(r * 1.02, -r * 0.05), Color("#f4f4f4"), r * 0.42)
 	# blush / anger
 	if red > 0.3 or mood in ["laugh", "hot"]:
 		var a := clampf(red, 0.3, 1.0) * 0.5
