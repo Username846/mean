@@ -30,10 +30,14 @@ class Bubble extends Node2D:
 	var tint := Color.WHITE
 	var follow: Callable     ## optional: returns where the bubble sits
 	var tip_at: Callable     ## optional: returns where the tail points
+	var delay := 0.0         ## stays hidden this long (its voice line is queued)
 
-	func _init(t: Node2D, txt: String, dur: float, off: Vector2, col := Color.WHITE) -> void:
+	func _init(t: Node2D, txt: String, dur: float, off: Vector2, col := Color.WHITE, wait := 0.0) -> void:
 		target = t
 		text = txt
+		delay = wait
+		age = -wait
+		visible = wait <= 0.0
 		life = dur + 0.9
 		offset = off
 		tint = col
@@ -56,6 +60,7 @@ class Bubble extends Node2D:
 		if not is_instance_valid(target):
 			queue_free()
 			return
+		visible = age >= 0.0
 		size = label.get_combined_minimum_size() + Vector2(24, 16)
 		label.size = size - Vector2(24, 16)
 		label.position = -size / 2.0 + Vector2(12, 8)

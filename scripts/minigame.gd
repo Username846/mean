@@ -251,7 +251,10 @@ func _emergency(text := "OH NO!\nHe's got to go to the HOSPITAL!", flashes := 8,
 	hud.add_child(l)
 	l.scale = Vector2(0.2, 0.2)
 	l.create_tween().tween_property(l, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	get_tree().create_timer(wait).timeout.connect(func(): Game.goto("hospital"))
+	get_tree().create_timer(wait).timeout.connect(func():
+		while Game.voice_busy():  # let Mom finish her line first
+			await get_tree().process_frame
+		Game.goto("hospital"))
 
 
 # ---------------------------------------------------------- 9mm pistol

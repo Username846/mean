@@ -42,14 +42,14 @@ func _ready() -> void:
 	var tw := create_tween()
 	tw.tween_property(kid, "position:x", 600.0, 3.0)
 	tw.tween_callback(func(): _dealer_says("dealer_1"))
-	tw.tween_interval(3.4)
+	tw.tween_interval(5.4)
 	tw.tween_callback(func(): kid.say("kid_buy"))
-	tw.tween_interval(3.2)
+	tw.tween_interval(3.0)
 	tw.tween_callback(func():
 		Game.sfx("rustle", 0.0)
 		create_tween().tween_property(self, "coat", 1.0, 0.5)
 		_dealer_says("dealer_2"))
-	tw.tween_interval(4.6)
+	tw.tween_interval(6.8)
 	tw.tween_callback(func():
 		kid.set_mood("smug")
 		kid.say("kid_deal"))
@@ -60,7 +60,7 @@ func _ready() -> void:
 
 func _dealer_says(id: String) -> void:
 	var info := Game.voice(id)
-	add_child(FX.Bubble.new(dealer_anchor, info[1], info[2], Vector2(0, -60), Color("#e8e8f0")))
+	add_child(FX.Bubble.new(dealer_anchor, info[1], info[2], Vector2(0, -60), Color("#e8e8f0"), info[3]))
 
 
 func _got_it() -> void:

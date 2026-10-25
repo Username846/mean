@@ -166,7 +166,7 @@ func _call_helicopter() -> void:
 
 func _say(anchor: Node2D, id: String, off: Vector2) -> void:
 	var info := Game.voice(id)
-	add_child(FX.Bubble.new(anchor, info[1], info[2], off, Color("#e8f6ff")))
+	add_child(FX.Bubble.new(anchor, info[1], info[2], off, Color("#e8f6ff"), info[3]))
 
 
 func _enter_room() -> void:

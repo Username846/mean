@@ -78,16 +78,17 @@ func say(id: String, force := true) -> bool:
 	if not force and (talk_cooldown > 0 or Game.voice_busy()):
 		return false
 	var info := Game.voice(id)
-	talk_cooldown = info[2] + 0.6
+	talk_cooldown = info[3] + info[2] + 0.6
 	if is_instance_valid(_bubble):
-		_bubble.queue_free()
+		# the current bubble stays up until this line actually starts
+		_bubble.life = minf(_bubble.life, _bubble.age + info[3])
 	var col := Color.WHITE
 	if info[0] == "you":
 		col = Color("#fff3a8")
 	if bubble_target:
-		_bubble = FX.Bubble.new(bubble_target, info[1], info[2], bubble_offset, col)
+		_bubble = FX.Bubble.new(bubble_target, info[1], info[2], bubble_offset, col, info[3])
 	else:
-		_bubble = FX.Bubble.new(self, info[1], info[2], Vector2.ZERO, col)
+		_bubble = FX.Bubble.new(self, info[1], info[2], Vector2.ZERO, col, info[3])
 		_bubble.follow = func(): return head_pos() + Vector2(0, -105 * absf(scale.y) * (1.0 + puff * 0.45))
 		_bubble.tip_at = head_pos
 	get_parent().add_child(_bubble)

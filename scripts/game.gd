@@ -29,12 +29,14 @@ var seen_ending := false
 var injuries := {}           ## scene id -> true once its hospital accident was found
 var hospital_from := ""
 var hospital_cause := ""
-var hospital_serious := false    ## this trip was the gunshot: intensive care
+var hospital_serious := false    ## this trip was the gunshot: he doesn't make it
 var seen_revenge := false        ## his revenge + the night-time pistol purchase
 var has_blaster := false
 
 var music: AudioStreamPlayer
 var voice_player: AudioStreamPlayer
+var _voice_end := 0.0        ## when the last queued voice line finishes (seconds)
+var _voice_gen := 0          ## bumped to cancel queued lines on a screen change
 var sfx_pool: Array[AudioStreamPlayer] = []
 var _sfx_i := 0
 var _cache := {}
@@ -135,6 +137,8 @@ func _swap(id: String) -> void:
 		current.queue_free()
 		current = null
 	voice_player.stop()
+	_voice_gen += 1
+	_voice_end = 0.0
 	var path := "res://scripts/%s.gd" % id
 	if not ResourceLoader.exists(path):
 		path = "res://scripts/scenes/%s.gd" % id
@@ -225,20 +229,39 @@ func sfx(name: String, pitch_var := 0.08, vol_db := 0.0, pitch := 1.0) -> void:
 	p.play()
 
 
-## Plays a voice line; returns [speaker, subtitle, duration].
+## Plays a voice line, or queues it until the line already playing has
+## finished, so lines never cut each other off.
+## Returns [speaker, subtitle, duration, delay before it starts].
 func voice(id: String) -> Array:
 	var info: Array = Lines.LINES.get(id, ["bro", id])
 	var st := _stream("res://assets/voice/%s.ogg" % id)
-	var dur := 1.5
-	if st != null:
-		voice_player.stream = st
-		voice_player.play()
-		dur = st.get_length()
-	return [info[0], info[1], dur]
+	if st == null:
+		return [info[0], info[1], 1.5, 0.0]
+	var now := Time.get_ticks_msec() / 1000.0
+	var delay := maxf(0.0, _voice_end - now)
+	if voice_player.playing and delay <= 0.0:
+		delay = 0.1  # the clock says it's done, but let the tail finish
+	var dur := st.get_length()
+	_voice_end = now + delay + dur + 0.15
+	if delay <= 0.0:
+		_play_voice(st, _voice_gen)
+	else:
+		get_tree().create_timer(delay).timeout.connect(_play_voice.bind(st, _voice_gen))
+	return [info[0], info[1], dur, delay]
 
 
+func _play_voice(st: AudioStream, gen: int) -> void:
+	if voice_player.playing:
+		await voice_player.finished
+	if gen != _voice_gen:
+		return  # the screen changed while it was waiting
+	voice_player.stream = st
+	voice_player.play()
+
+
+## True while a line is playing or waiting its turn.
 func voice_busy() -> bool:
-	return voice_player.playing
+	return voice_player.playing or _voice_end > Time.get_ticks_msec() / 1000.0
 
 
 # ------------------------------------------------------------------ saving
