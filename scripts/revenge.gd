@@ -1,7 +1,7 @@
 extends Node2D
 ## After every hospital trip has been found: Bro gets his revenge and trashes
 ## your room, then you walk in on the wreckage. Leads into the night-time
-## Mega Blaster purchase (dealer.gd).
+## pistol purchase (dealer.gd).
 
 const Bro = preload("res://scripts/bro.gd")
 const FX = preload("res://scripts/fx.gd")

@@ -207,8 +207,10 @@ S["snip"] = cat(noise(0.03) * 0.8, silence(0.04), sweep(3000, 2200, 0.05, "squar
 S["chitter"] = cat(*[sweep(2600, 3400, 0.04, "tri") * env_exp(0.04, 40) * 0.5 for _ in range(9)])
 S["rustle"] = lowpass(noise(0.7), 0.45) * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 6 * t_(0.7)))) * np.sin(np.pi * t_(0.7) / 0.7)
 
-S["blaster"] = mixs(kick(0.6) * 0.6, lowpass(noise(0.25), 0.5) * env_exp(0.25, 18) * 1.5,
-                   sweep(700, 2200, 0.12, "tri") * env_exp(0.12, 20) * 0.4)
+# 9mm gunshot: a sharp crack, a deep body thump, the slide cycling, and a room echo
+S["blaster"] = mixs(noise(0.03) * env_exp(0.03, 120) * 3, kick(1.0),
+                    lowpass(noise(0.7), 0.25) * env_exp(0.7, 7) * 2.2,
+                    np.pad(clang(2400) * 0.15, (int(0.07 * SR), 0)))
 S["heartbeat"] = mixs(kick(1.0), np.pad(kick(0.7), (int(0.22 * SR), 0)))
 S["rip"] = cat(*[lowpass(noise(0.05), 0.6) * env_exp(0.05, 30) * rng.uniform(0.5, 1) for _ in range(8)])
 S["itemget"] = cat(*[tone("square", m, d, 0.35, duty=0.25, s=0.9)

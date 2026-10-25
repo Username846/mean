@@ -557,7 +557,7 @@ func debug_injure() -> void:
 	_impact(HEAD, 2000.0)
 
 
-## The blaster hits wherever his ragdoll actually is.
+## The bullet hits wherever his ragdoll actually is.
 func blaster_hits(p: Vector2) -> bool:
 	for i in pos.size():
 		if pos[i].distance_to(p) < RADII[i] + 14.0:

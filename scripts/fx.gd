@@ -167,25 +167,93 @@ class Puddle extends Node2D:
 		return pts
 
 
-## The Mega Blaster 9000 (a toy foam blaster): orange body, blue barrel, orange tip.
+## A 9mm semi-automatic pistol in side view, muzzle pointing right: steel slide
+## with rear serrations and sights, black polymer frame, stippled grip.
 static func draw_blaster(ci: CanvasItem, pos: Vector2, sc := 1.0, rot := 0.0) -> void:
+	var line := Color("#060607")
+	var frame := Color("#1c1d20")
+	var steel := Color("#3a3d43")
 	ci.draw_set_transform(pos, rot, Vector2(sc, sc))
-	rounded_rect(ci, Rect2(-46, -22, 92, 34), Color("#ff8a1c"), 10, Color("#5a2a00"), 3)
-	rounded_rect(ci, Rect2(30, -16, 50, 20), Color("#2f7fe0"), 6, Color("#10305a"), 3)
-	ci.draw_rect(Rect2(80, -18, 12, 24), Color("#ff8a1c"))
-	ci.draw_colored_polygon(PackedVector2Array([Vector2(-34, 8), Vector2(-6, 8), Vector2(-14, 46), Vector2(-40, 46)]), Color("#2f7fe0"))
-	ci.draw_arc(Vector2(4, 16), 12, 0, PI, 10, Color("#5a2a00"), 4)
-	ci.draw_circle(Vector2(-8, -30), 12, Color("#ffde3b"))
-	ci.draw_rect(Rect2(-30, -14, 40, 6), Color("#ffde3b"))
+	# grip (raked back) + beavertail
+	var grip := PackedVector2Array([Vector2(-44, -6), Vector2(-12, -6), Vector2(-14, 4), Vector2(-21, 46),
+		Vector2(-46, 46), Vector2(-48, 40), Vector2(-42, 6), Vector2(-54, -2)])
+	ci.draw_colored_polygon(grip, frame)
+	for gy in range(6, 42, 5):
+		for gx in range(-44, -16, 5):
+			var p := Vector2(gx + (gy % 2) * 2.5 + (gy - 6) * -0.18, gy)
+			if Geometry2D.is_point_in_polygon(p, grip):
+				ci.draw_circle(p, 1.1, Color("#2c2e33"))
+	ci.draw_polyline(grip + PackedVector2Array([grip[0]]), line, 2.0, true)
+	# magazine baseplate
+	ci.draw_rect(Rect2(-48, 45, 29, 6), Color("#101113"))
+	ci.draw_rect(Rect2(-48, 45, 29, 6), line, false, 1.5)
+	# frame / dust cover with accessory rail
+	ci.draw_rect(Rect2(-14, -6, 74, 10), frame)
+	for k in 4:
+		ci.draw_line(Vector2(30 + k * 7, 0), Vector2(30 + k * 7, 4), line, 1.5)
+	ci.draw_rect(Rect2(-14, -6, 74, 10), line, false, 2.0)
+	# trigger guard + trigger
+	var guard := PackedVector2Array([Vector2(14, 4), Vector2(14, 12), Vector2(10, 19), Vector2(-2, 20), Vector2(-15, 17)])
+	ci.draw_polyline(guard, frame, 6.0, true)
+	ci.draw_polyline(guard, line, 1.5, true)
+	ci.draw_colored_polygon(PackedVector2Array([Vector2(1, 4), Vector2(5, 4), Vector2(3, 11), Vector2(-1, 16),
+		Vector2(-3, 15), Vector2(0, 10)]), Color("#0c0c0e"))
+	# slide
+	var slide := PackedVector2Array([Vector2(-52, -26), Vector2(62, -26), Vector2(64, -23), Vector2(64, -6),
+		Vector2(-50, -6), Vector2(-54, -12)])
+	ci.draw_colored_polygon(slide, steel)
+	ci.draw_rect(Rect2(-50, -25, 113, 3), Color("#6b7079"))      # top highlight
+	ci.draw_rect(Rect2(-50, -10, 114, 4), Color("#2a2c31"))      # lower shadow
+	for k in 6:
+		ci.draw_line(Vector2(-46 + k * 3.5, -22), Vector2(-46 + k * 3.5, -9), Color("#1b1c20"), 1.6)
+	ci.draw_rect(Rect2(2, -23, 20, 9), Color("#0e0f11"))         # ejection port
+	ci.draw_rect(Rect2(4, -21, 16, 2), Color("#8a8f98"))         # barrel hood
+	ci.draw_polyline(slide + PackedVector2Array([slide[0]]), line, 2.0, true)
+	# muzzle, sights, slide stop, takedown
+	ci.draw_rect(Rect2(62, -21, 3, 12), Color("#121315"))
+	ci.draw_rect(Rect2(55, -30, 5, 4), Color("#101113"))
+	ci.draw_rect(Rect2(-49, -31, 12, 5), Color("#101113"))
+	ci.draw_rect(Rect2(-44.5, -31, 3, 2.5), steel)               # rear-sight notch
+	ci.draw_circle(Vector2(57.5, -29), 1.0, Color("#d8e0e8"))
+	ci.draw_rect(Rect2(-18, -6, 16, 4), Color("#141518"))
+	ci.draw_circle(Vector2(18, -1), 2.2, Color("#141518"))
 	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 
-## A foam dart (orange tip, blue body).
+## A bullet in flight: a copper slug with a faint streak behind it.
 static func draw_dart(ci: CanvasItem, pos: Vector2, rot: float, sc := 1.0) -> void:
 	ci.draw_set_transform(pos, rot, Vector2(sc, sc))
-	ci.draw_rect(Rect2(-34, -6, 30, 12), Color("#2f7fe0"))
-	ci.draw_circle(Vector2(-2, 0), 8, Color("#ff8a1c"))
+	ci.draw_line(Vector2(-90, 0), Vector2(-6, 0), Color(1, 0.85, 0.55, 0.35), 3)
+	ci.draw_rect(Rect2(-8, -2.5, 7, 5), Color("#b87333"))
+	ci.draw_circle(Vector2(-1, 0), 2.5, Color("#c9874a"))
 	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+## Muzzle flash at `pos` pointing along `rot`; `k` runs 1 (fresh) .. 0 (gone).
+static func draw_muzzle_flash(ci: CanvasItem, pos: Vector2, rot: float, k: float) -> void:
+	if k <= 0.0:
+		return
+	ci.draw_set_transform(pos, rot, Vector2.ONE * (0.6 + 0.6 * k))
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	for i in 10:
+		var a := -PI / 2 + PI * i / 9.0
+		var r := 22.0 if i % 2 == 0 else 10.0
+		var stretch := 1.0 + 1.6 * maxf(0.0, cos(a))
+		outer.append(Vector2.from_angle(a) * r * stretch)
+		inner.append(Vector2.from_angle(a) * r * stretch * 0.5)
+	ci.draw_colored_polygon(outer, Color(1, 0.62, 0.15, 0.85 * k))
+	ci.draw_colored_polygon(inner, Color(1, 0.95, 0.7, k))
+	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
+## Bullet hole where a shot missed; fades out with `alpha`.
+static func draw_bullet_hole(ci: CanvasItem, pos: Vector2, alpha: float) -> void:
+	for k in 5:
+		var dir := Vector2.from_angle(k * 1.3 + pos.x * 0.01)
+		ci.draw_line(pos + dir * 5, pos + dir * (11 + k % 3 * 4), Color(0.1, 0.1, 0.1, 0.5 * alpha), 1.5)
+	ci.draw_circle(pos, 6, Color(0.25, 0.22, 0.2, 0.6 * alpha))
+	ci.draw_circle(pos, 3.5, Color(0.04, 0.04, 0.05, alpha))
 
 
 ## "+25 MEAN!" style floating text.

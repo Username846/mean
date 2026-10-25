@@ -1,6 +1,6 @@
 extends Node2D
-## Night-time cutscene: you sneak out and buy the Mega Blaster 9000 (a foam
-## dart blaster) from a shady dealer under a streetlight.
+## Night-time cutscene: you sneak out and buy a 9mm pistol from a shady dealer
+## under a streetlight.
 
 const Bro = preload("res://scripts/bro.gd")
 const FX = preload("res://scripts/fx.gd")
@@ -11,7 +11,7 @@ var t := 0.0
 var kid: Bro
 var dealer_anchor: Node2D
 var coat := 0.0              ## 0 closed .. 1 open
-var prize := 0.0             ## blaster travelling from the coat to you
+var prize := 0.0             ## pistol travelling from the coat to you
 var shine := 0.0
 var ui: CanvasLayer
 var done := false
@@ -88,10 +88,10 @@ func _got_it() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	panel.add_child(v)
-	var l := Game.make_label("You got the MEGA BLASTER 9000!", 38, Color("#ffde3b"))
+	var l := Game.make_label("You got a 9MM PISTOL!", 38, Color("#ffde3b"))
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(l)
-	var l2 := Game.make_label("Tap the blaster button (bottom-right) in any location to equip it.", 22)
+	var l2 := Game.make_label("Tap the pistol button (bottom-right) in any location to equip it.", 22)
 	l2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	l2.custom_minimum_size = Vector2(660, 0)

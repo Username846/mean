@@ -29,8 +29,8 @@ var seen_ending := false
 var injuries := {}           ## scene id -> true once its hospital accident was found
 var hospital_from := ""
 var hospital_cause := ""
-var hospital_serious := false    ## this trip was the Mega Blaster: intensive care
-var seen_revenge := false        ## his revenge + the night-time blaster purchase
+var hospital_serious := false    ## this trip was the gunshot: intensive care
+var seen_revenge := false        ## his revenge + the night-time pistol purchase
 var has_blaster := false
 
 var music: AudioStreamPlayer

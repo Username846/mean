@@ -1,6 +1,6 @@
 # Bug My Brother!
 
-An *Interactive Buddy*-style prank game made in **Godot 4.7.2**. Your big brother is always mean to you, so here are **10 places to get him back**. It's all cartoon slapstick: pies, water balloons, whoopee cushions and crabs.
+An *Interactive Buddy*-style prank game made in **Godot 4.7.2**. Your big brother is always mean to you, so here are **10 places to get him back**. It's mostly cartoon slapstick: pies, water balloons, whoopee cushions and crabs (the post-game unlock is a realistic handgun, so it isn't for young kids).
 
 **Play in your browser:** https://username846.github.io/mean/
 
@@ -42,7 +42,7 @@ Each location also hides one way to *seriously* hurt him by accident. That sets 
 
 Bonus: during the ambulance ride, tap one of its wheels.
 
-**After all 10:** he gets his revenge and trashes your room (RIP, LEGO castle). Then you sneak out at night and buy the **Mega Blaster 9000** (a foam-dart blaster) from a shady dealer. From then on, every location has a blaster button in the bottom-right. Equip it and tap him for the Code Red emergency and an Intensive Care stay.
+**After all 10:** he gets his revenge and trashes your room (RIP, LEGO castle). Then you sneak out at night and buy a **9mm pistol** from a shady dealer. From then on, every location has a pistol button in the bottom-right. Equip it and tap him for the Code Red emergency and an Intensive Care stay.
 
 </details>
 

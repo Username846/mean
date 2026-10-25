@@ -25,7 +25,7 @@ var injured := false
 var blaster_on := false
 var blaster_btn: Button
 var blaster_aim := Vector2(-100, -100)
-var darts: Array = []        ## {from, to, t, hit}
+var darts: Array = []        ## bullets: {from, to, t, age, hit}
 
 
 func _ready() -> void:
@@ -254,7 +254,7 @@ func _emergency(text := "OH NO!\nHe's got to go to the HOSPITAL!", flashes := 8,
 	get_tree().create_timer(wait).timeout.connect(func(): Game.goto("hospital"))
 
 
-# ---------------------------------------------------------- Mega Blaster 9000
+# ---------------------------------------------------------- 9mm pistol
 
 func _build_blaster() -> void:
 	if not Game.has_blaster:
@@ -268,7 +268,7 @@ func _build_blaster() -> void:
 		blaster_on = on
 		Game.sfx("click"))
 	hud.add_child(blaster_btn)
-	var icon := FX.Layer.new(func(ci): FX.draw_blaster(ci, Vector2(52, 34), 0.62))
+	var icon := FX.Layer.new(func(ci): FX.draw_blaster(ci, Vector2(55, 36), 0.62))
 	blaster_btn.add_child(icon)
 	hud.add_child(FX.Layer.new(_draw_blaster_fx, 10))
 
@@ -284,7 +284,7 @@ func _input(e: InputEvent) -> void:
 			return  # let the HUD buttons work
 		get_viewport().set_input_as_handled()
 		Game.sfx("blaster", 0.1)
-		darts.append({"from": Vector2(1210, 700), "to": e.position, "t": 0.0, "hit": blaster_hits(e.position)})
+		darts.append({"from": Vector2(1210, 700), "to": e.position, "t": 0.0, "age": 0.0, "hit": blaster_hits(e.position)})
 
 
 ## Override for locations where Bro isn't a plain standing puppet.
@@ -298,8 +298,9 @@ func blaster_hits(p: Vector2) -> bool:
 
 func _update_darts(dt: float) -> void:
 	for d in darts:
+		d.age += dt
 		if d.t < 1.0:
-			d.t = minf(1.0, d.t + dt / 0.12)
+			d.t = minf(1.0, d.t + dt / 0.05)
 			if d.t >= 1.0:
 				if d.hit and not injured:
 					_blasted(d.to)
@@ -313,7 +314,12 @@ func _draw_blaster_fx(ci: CanvasItem) -> void:
 	for d in darts:
 		var from: Vector2 = d.from
 		var to: Vector2 = d.to
-		FX.draw_dart(ci, from.lerp(to, d.t), (to - from).angle())
+		var rot := (to - from).angle()
+		FX.draw_muzzle_flash(ci, from, rot, 1.0 - d.age / 0.08)
+		if d.t < 1.0:
+			FX.draw_dart(ci, from.lerp(to, d.t), rot)
+		elif not d.hit:
+			FX.draw_bullet_hole(ci, to, clampf((3.0 - d.age) / 0.8, 0.0, 1.0))
 	if blaster_on and not injured and blaster_aim.y > 70:
 		ci.draw_arc(blaster_aim, 28, 0, TAU, 24, Color("#ff3b3b"), 3)
 		ci.draw_circle(blaster_aim, 4, Color("#ff3b3b"))
@@ -322,13 +328,13 @@ func _draw_blaster_fx(ci: CanvasItem) -> void:
 			ci.draw_line(blaster_aim + dir * 16, blaster_aim + dir * 40, Color("#ff3b3b"), 3)
 
 
-## Point-blank Mega Blaster hit: the long, scary emergency.
+## Point-blank gunshot: the long, scary emergency.
 func _blasted(p: Vector2) -> void:
 	injured = true
 	set_process_unhandled_input(false)
 	blaster_on = false
 	Game.hospital_from = scene_id
-	Game.hospital_cause = "Hit point-blank by the Mega Blaster 9000"
+	Game.hospital_cause = "Shot point-blank with a 9mm pistol"
 	Game.hospital_serious = true
 	Game.sfx("crack", 0.0)
 	Game.sfx("bonk", 0.0)
@@ -372,7 +378,7 @@ func _blasted(p: Vector2) -> void:
 		_emergency("CODE RED!\nHe's SERIOUSLY hurt!", 14, 6.0, 1.6))
 
 
-## Override to customise how Bro reacts to a blaster hit.
+## Override to customise how Bro reacts to being shot.
 func on_blasted(p: Vector2) -> void:
 	bro.set_mood("hurt")
 	bro.say("blasted")
