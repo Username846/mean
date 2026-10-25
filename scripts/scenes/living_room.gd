@@ -105,6 +105,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		mouse = e.position
 		mouse_down = e.pressed
 		if e.pressed:
+			# a touch starts here with no prior motion; don't treat the jump as a fling
+			last_mouse = e.position
 			_press(e.position)
 		elif grabbed >= 0:
 			_release()

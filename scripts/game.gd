@@ -36,11 +36,12 @@ var _music_id := ""
 var music_on := true
 
 var _fade: ColorRect
+var _portrait: ColorRect
+var volume := 0.8
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_setup_buses()
 	music = AudioStreamPlayer.new()
 	music.bus = "Music"
 	add_child(music)
@@ -61,23 +62,56 @@ func _ready() -> void:
 	_fade.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(_fade)
+	_portrait = ColorRect.new()
+	_portrait.color = Color(0.12, 0.07, 0.22)
+	_portrait.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_portrait.visible = false
+	var turn := make_label("Turn your device sideways\nto bug your brother!", 64, Color("#ffde3b"))
+	turn.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	turn.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	turn.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_portrait.add_child(turn)
+	layer.add_child(_portrait)
 	load_game()
+	set_volume(volume)
 
 
-func _setup_buses() -> void:
-	for b in [["Music", -9.0], ["Voice", 2.0], ["SFX", -4.0]]:
-		if AudioServer.get_bus_index(b[0]) == -1:
-			AudioServer.add_bus()
-			var i := AudioServer.bus_count - 1
-			AudioServer.set_bus_name(i, b[0])
-			AudioServer.set_bus_send(i, "Master")
-			AudioServer.set_bus_volume_db(i, b[1])
-	# duck the music a little under dialogue
-	var comp := AudioEffectCompressor.new()
-	comp.sidechain = "Voice"
-	comp.threshold = -22.0
-	comp.ratio = 4.0
-	AudioServer.add_bus_effect(AudioServer.get_bus_index("Music"), comp)
+func _process(_dt: float) -> void:
+	var ws := get_window().size
+	_portrait.visible = ws.y > ws.x * 1.05
+
+
+# ------------------------------------------------------------------ volume / fullscreen
+
+## Master volume, 0..1. The buses themselves live in default_bus_layout.tres:
+## buses created from code at runtime stay silent in web exports.
+func set_volume(v: float) -> void:
+	volume = clampf(v, 0.0, 1.0)
+	AudioServer.set_bus_mute(0, volume <= 0.001)
+	AudioServer.set_bus_volume_db(0, linear_to_db(maxf(volume, 0.001)))
+
+
+func fullscreen_supported() -> bool:
+	if OS.has_feature("web"):
+		return bool(JavaScriptBridge.eval("!!(document.fullscreenEnabled || document.webkitFullscreenEnabled)", true))
+	return true
+
+
+func is_fullscreen() -> bool:
+	if OS.has_feature("web"):
+		return bool(JavaScriptBridge.eval("!!(document.fullscreenElement || document.webkitFullscreenElement)", true))
+	return DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+
+
+func toggle_fullscreen() -> void:
+	if OS.has_feature("web"):
+		# Browsers only allow fullscreen during a click/tap; bmbFullscreen()
+		# (in the page head) runs it now or on the very next pointer release.
+		JavaScriptBridge.eval("window.bmbFullscreen && window.bmbFullscreen()", true)
+	elif is_fullscreen():
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 
 # ------------------------------------------------------------------ screens
@@ -199,6 +233,7 @@ func save_game() -> void:
 	cf.set_value("game", "stars", stars)
 	cf.set_value("game", "best", best)
 	cf.set_value("game", "seen_ending", seen_ending)
+	cf.set_value("game", "volume", volume)
 	cf.save(SAVE_PATH)
 
 
@@ -210,6 +245,7 @@ func load_game() -> void:
 	stars = cf.get_value("game", "stars", {})
 	best = cf.get_value("game", "best", {})
 	seen_ending = cf.get_value("game", "seen_ending", false)
+	volume = cf.get_value("game", "volume", 0.8)
 
 
 func reset_save() -> void:
@@ -230,8 +266,8 @@ func _box(col: Color, radius := 14, border := Color(0, 0, 0, 0.35), bw := 3) -> 
 	sb.set_border_width_all(bw)
 	sb.content_margin_left = 16
 	sb.content_margin_right = 16
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
+	sb.content_margin_top = 11
+	sb.content_margin_bottom = 11
 	sb.shadow_color = Color(0, 0, 0, 0.25)
 	sb.shadow_size = 4
 	sb.shadow_offset = Vector2(0, 3)

@@ -47,7 +47,9 @@ func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventMouseMotion:
 		mouse = e.position
 	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		# aim from the press position itself: on touch screens there is no hover
 		mouse = e.position
+		aim = _aim_at(mouse)
 		balls.append({"from": Vector2(180, 760), "to": aim, "t": 0.0})
 		Game.sfx("throw")
 
@@ -55,8 +57,7 @@ func _unhandled_input(e: InputEvent) -> void:
 func tick(dt: float) -> void:
 	lights_t += dt
 	lever = move_toward(lever, 0.0, dt * 2)
-	var wob := 10.0 + rage * 0.15
-	aim = mouse + Vector2(sin(time * 2.3) + sin(time * 5.1) * 0.5, cos(time * 1.9) + sin(time * 4.3) * 0.5) * wob
+	aim = _aim_at(mouse)
 	var amp := clampf(rage - 15, 0, 60) * 1.4
 	target = TARGET_BASE + Vector2(sin(time * 1.1) * amp, sin(time * 1.7) * amp * 0.4)
 	for b in balls.duplicate():
@@ -64,6 +65,12 @@ func tick(dt: float) -> void:
 		if b.t >= 1.0:
 			balls.erase(b)
 			_land(b.to)
+
+
+## Your aim wobbles around the pointer, more as he gets angrier.
+func _aim_at(p: Vector2) -> Vector2:
+	var wob := 10.0 + rage * 0.15
+	return p + Vector2(sin(time * 2.3) + sin(time * 5.1) * 0.5, cos(time * 1.9) + sin(time * 4.3) * 0.5) * wob
 
 
 func _land(p: Vector2) -> void:

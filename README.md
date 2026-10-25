@@ -19,6 +19,8 @@ An *Interactive Buddy*-style prank game made in **Godot 4.7.2**. Your big brothe
 | 9 | **Haunted Attic** | Hide in the dark. He creeps past with a flashlight, so jump-scare him up close without getting spotted. |
 | 10 | **Carnival** | Hit the bullseye with your wobbly aim to drop him into the dunk tank. |
 
+Works on **PC (mouse)** and **phones/tablets (touch)**: tap where you'd click, and drag where you'd drag. Hold your phone sideways. The title screen has a **Fullscreen** button (bottom-left) and a **volume** button (top-right).
+
 Fill his **BRO RAGE** meter in a location to earn its star. Get all 10 stars to see the ending. You also collect *mean points* that move you up the ranks, from "Innocent Angel" all the way to "LEGENDARY Little Sibling". Your progress saves automatically in the browser.
 
 ## Audio
@@ -27,11 +29,14 @@ Fill his **BRO RAGE** meter in a location to earn its star. Get all 10 stars to 
 * **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu and the ending (12 in total).
 * **Sound effects:** 41 procedurally generated sounds (splats, splashes, boings and, yes, a whoopee cushion).
 
+Audio starts after your first click or tap, because browsers require that. On iPhone, the ring/silent switch has to be on ring to hear web audio. iPhone Safari doesn't support fullscreen for web pages, so the Fullscreen button is hidden there.
+
 ## Project layout
 
 ```
 project.godot / main.tscn   Godot project (renderer: Compatibility, for the web)
-scripts/game.gd             Autoload: audio, saving, screen switching, UI theme
+scripts/game.gd             Autoload: audio, volume, fullscreen, saving, screens, UI theme
+default_bus_layout.tres     Audio buses (must be defined here, not in code, to play on the web)
 scripts/bro.gd              The brother: procedurally drawn puppet with 13 moods
 scripts/minigame.gd         Base class for locations (rage meter, scoring, HUD)
 scripts/scenes/*.gd         The 10 locations
