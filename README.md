@@ -11,12 +11,12 @@ An *Interactive Buddy*-style prank game made in **Godot 4.7.2**. Your big brothe
 | 1 | **Living Room** | A ragdoll sandbox like Interactive Buddy. Grab and fling him into walls, poke him, tickle him with a feather, bonk him with bouncy balls, and hide a whoopee cushion for him to land on. If you shake him around, he gets dizzy. |
 | 2 | **Kitchen** | Throw cream pies at his face while he dodges behind the counter. Watch out for his frying-pan shield. |
 | 3 | **Backyard** | Pull back a slingshot and lob water balloons at him. He has an umbrella. |
-| 4 | **Bedroom** | Draw on his sleeping face with markers and stamps (mustache, glasses, whiskers, unibrow). Keep the noise down when he stirs, then wake him up and hand him a mirror. |
+| 4 | **Bedroom** | Draw on his sleeping face with a pen, a marker and stamps (mustache, glasses, whiskers, unibrow). Keep the noise down when he stirs, then wake him up and hand him a mirror. |
 | 5 | **Game Room** | He's fighting a video-game boss. Pull the plug at the worst moment. The closer he is to winning, the madder he gets. |
 | 6 | **Cafeteria** | Build him a disgusting sandwich (ghost pepper sauce, old sock, gummy worms...). He checks the top layer, so hide the gross stuff under some lettuce! |
 | 7 | **Snow Park** | Snowball whack-a-bro. Don't waste throws on the snowmen, and wipe his snowballs off your screen. |
 | 8 | **Beach** | Bury him in sand before the waves wash it away, then bring the crab. |
-| 9 | **Haunted Attic** | Hide in the dark. He creeps past with a flashlight, so jump-scare him up close without getting spotted. |
+| 9 | **Treehouse** | He's reading comics in his treehouse. Shake the tree, pelt him with pinecones, send a squirrel after him, or cut the rope ladder to strand him. |
 | 10 | **Carnival** | Hit the bullseye with your wobbly aim to drop him into the dunk tank. |
 
 Works on **PC (mouse)** and **phones/tablets (touch)**: tap where you'd click, and drag where you'd drag. Hold your phone sideways. The title screen has a **Fullscreen** button (bottom-left) and a **volume** button (top-right).
@@ -29,24 +29,26 @@ Each location also hides one way to *seriously* hurt him by accident. That sets 
 
 <details><summary>Spoilers: how to find all 10</summary>
 
-1. **Living Room:** throw him into the TV.
+1. **Living Room:** smash him into the walls too many times.
 2. **Kitchen:** hit the cupboard right above his head with a pie.
 3. **Backyard:** hit the tree with a balloon while he's standing under it.
 4. **Bedroom:** after he wakes up, draw on his eyes.
 5. **Game Room:** click the TV.
-6. **Cafeteria:** hide sardines in his sandwich.
+6. **Cafeteria:** put two or more Ghost Pepper Sauces in his sandwich (with a normal topping on top).
 7. **Snow Park:** pack a rock into your snowball, then hit him with it.
 8. **Beach:** keep pouring sea water on his face while he's buried.
-9. **Haunted Attic:** scare him again while he's running away.
+9. **Treehouse:** cut the rope ladder while he's climbing it.
 10. **Carnival:** hit the sign above him 4 times.
+
+Bonus: during the ambulance ride, tap one of its wheels.
 
 </details>
 
 ## Audio
 
-* **Synthesized voices:** all 94 voice lines (the brother, an announcer, Mom, a paramedic and a doctor) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
+* **Synthesized voices:** all 99 voice lines (the brother, an announcer, Mom, a paramedic and a doctor) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
 * **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu, the hospital and the ending (13 in total).
-* **Sound effects:** 51 procedurally generated sounds (splats, splashes, boings, sirens and, yes, a whoopee cushion).
+* **Sound effects:** 57 procedurally generated sounds (splats, splashes, boings, sirens and, yes, a whoopee cushion).
 
 Audio starts after your first click or tap, because browsers require that. On iPhone, the ring/silent switch has to be on ring to hear web audio. iPhone Safari doesn't support fullscreen for web pages, so the Fullscreen button is hidden there.
 

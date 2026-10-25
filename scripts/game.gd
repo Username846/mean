@@ -14,7 +14,7 @@ const SCENES := [
 	{"id": "cafeteria", "name": "Cafeteria", "desc": "Build him a disgusting sandwich.", "col": Color("#f2c443")},
 	{"id": "snow_park", "name": "Snow Park", "desc": "Snowball whack-a-bro!", "col": Color("#9fd8ff")},
 	{"id": "beach", "name": "Beach", "desc": "Bury him in sand. Add a crab.", "col": Color("#f4d58a")},
-	{"id": "attic", "name": "Haunted Attic", "desc": "Hide... and jump-scare him!", "col": Color("#8a5cc2")},
+	{"id": "treehouse", "name": "Treehouse", "desc": "Shake it, squirrel it, cut the ladder!", "col": Color("#8a5cc2")},
 	{"id": "carnival", "name": "Carnival", "desc": "Sink him in the dunk tank!", "col": Color("#ff5a4f")},
 ]
 
@@ -152,6 +152,15 @@ func star_count() -> int:
 	var n := 0
 	for s in SCENES:
 		if stars.get(s.id, false):
+			n += 1
+	return n
+
+
+## Hospital accidents found among the current locations.
+func injury_count() -> int:
+	var n := 0
+	for s in SCENES:
+		if injuries.get(s.id, false):
 			n += 1
 	return n
 

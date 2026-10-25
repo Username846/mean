@@ -1,6 +1,8 @@
 extends Node2D
 ## "Oh no!" cutscene after a serious accident: the ambulance races to the
 ## hospital, then Bro recovers in bed (bandaged up) while the doctor scolds you.
+## Tap an ambulance wheel on the way and it blows out, rolls, and a rescue
+## helicopter has to fly him to another hospital instead.
 
 const Bro = preload("res://scripts/bro.gd")
 const FX = preload("res://scripts/fx.gd")
@@ -14,6 +16,19 @@ var doc_anchor: Node2D
 var beep_t := 0.0
 var ui: CanvasLayer
 var fade: ColorRect
+var drive_tw: Tween
+var street_tw: Tween
+var crashed := false
+var popped := 0.0            ## local x of the blown wheel
+var amb_rot := 0.0
+var amb_dy := 0.0
+var heli_x := -400.0
+var heli_on := false
+var rope := 0.0              ## 0 = stretcher at the helicopter, 1 = down at the wreck
+var carrying := false
+var smoke_t := 0.0
+const AMB_PIVOT := Vector2(-40, -100)
+const WHEELS := [Vector2(-120, -20), Vector2(130, -20)]
 
 
 func _ready() -> void:
@@ -43,13 +58,87 @@ func _ready() -> void:
 	get_tree().create_timer(3.4).timeout.connect(func():
 		if phase == "street":
 			Game.sfx("siren", 0.0))
-	get_tree().create_timer(2.6).timeout.connect(func(): _say(amb_anchor, "medic", Vector2(0, -150)))
-	create_tween().tween_property(self, "amb_x", 640.0, 4.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	get_tree().create_timer(2.6).timeout.connect(func():
+		if not crashed:
+			_say(amb_anchor, "medic", Vector2(0, -150)))
+	drive_tw = create_tween()
+	drive_tw.tween_property(self, "amb_x", 640.0, 4.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	street_tw = create_tween()
+	street_tw.tween_interval(5.8)
+	street_tw.tween_callback(_to_room)
+
+
+func _to_room() -> void:
 	var tw := create_tween()
-	tw.tween_interval(5.8)
 	tw.tween_property(fade, "color:a", 1.0, 0.5)
 	tw.tween_callback(_enter_room)
 	tw.tween_property(fade, "color:a", 0.0, 0.6)
+
+
+func _amb_xform() -> Transform2D:
+	return Transform2D(amb_rot, Vector2(amb_x, 560 + amb_dy) + AMB_PIVOT) * Transform2D(0, -AMB_PIVOT)
+
+
+func _unhandled_input(e: InputEvent) -> void:
+	if phase != "street" or crashed:
+		return
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
+		for w in WHEELS:
+			if (_amb_xform() * w).distance_to(e.position) < 48:
+				_blowout(w.x)
+				return
+
+
+## A popped tire: skid, flip, roll... and call in the helicopter.
+func _blowout(wheel_x: float) -> void:
+	crashed = true
+	popped = wheel_x
+	drive_tw.kill()
+	street_tw.kill()
+	(ui.get_node("Banner") as Label).text = "OH NO! The tire blew!"
+	Game.sfx("tirepop", 0.0)
+	Game.voice("medic_crash")
+	var dir := 1.0 if wheel_x > 0 else -1.0
+	var tw := create_tween()
+	# skid
+	tw.tween_callback(func(): Game.sfx("skid", 0.0))
+	tw.tween_property(self, "amb_x", amb_x + 150, 0.8).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(self, "amb_rot", 0.18 * dir, 0.8)
+	# flip and roll
+	tw.tween_callback(func():
+		Game.sfx("crash", 0.0)
+		(ui.get_node("Banner") as Label).text = "OH NO! The ambulance is ROLLING!")
+	tw.tween_property(self, "amb_rot", TAU * 1.5 + 0.0, 1.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_property(self, "amb_x", minf(amb_x + 520, 1000.0), 1.6).set_ease(Tween.EASE_OUT)
+	tw.parallel().tween_method(func(k: float): amb_dy = -absf(sin(k * PI * 3.0)) * 120.0 * (1.0 - k) + k * 30.0, 0.0, 1.0, 1.6)
+	tw.tween_callback(func():
+		Game.sfx("crash", 0.0, -4)
+		Game.sfx("thud", 0.0))
+	tw.tween_interval(1.0)
+	tw.tween_callback(_call_helicopter)
+	get_tree().create_timer(1.2).timeout.connect(func(): Game.sfx("crash", 0.1, -6))
+	get_tree().create_timer(1.8).timeout.connect(func(): Game.sfx("crash", 0.1, -8))
+
+
+func _call_helicopter() -> void:
+	heli_on = true
+	(ui.get_node("Banner") as Label).text = "Calling AIR RESCUE!"
+	Game.sfx("rotor", 0.0)
+	var wreck_x := amb_x - 40
+	var tw := create_tween()
+	tw.tween_property(self, "heli_x", wreck_x, 2.6).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func():
+		Game.sfx("rotor", 0.0)
+		_say(amb_anchor, "pilot", Vector2(0, -60)))
+	tw.tween_property(self, "rope", 1.0, 1.2)
+	tw.tween_callback(func(): carrying = true)
+	tw.tween_interval(0.4)
+	tw.tween_property(self, "rope", 0.0, 1.4)
+	tw.tween_callback(func():
+		Game.sfx("rotor", 0.0)
+		(ui.get_node("Banner") as Label).text = "Off to ANOTHER hospital!")
+	tw.tween_property(self, "heli_x", 1700.0, 2.4).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_callback(_to_room)
 
 
 func _say(anchor: Node2D, id: String, off: Vector2) -> void:
@@ -70,17 +159,16 @@ func _enter_room() -> void:
 	bro.set_mood("sad")
 	bro.shirt_col = Color("#a8d0f0")
 	match Game.hospital_from:
-		"kitchen", "backyard", "snow_park", "game_room":
+		"kitchen", "backyard", "snow_park", "game_room", "living_room", "treehouse":
 			bro.bandage = 1
 		"bedroom":
 			bro.bandage = 2
-		"cafeteria":
-			bro.puff = 0.35
-		"living_room":
-			bro.hair_up = 1.0
+	if crashed:
+		bro.bandage = maxi(bro.bandage, 1)
+		bro.hair_up = 0.6
 	add_child(bro)
 	add_child(FX.Layer.new(_draw_blanket, 3))
-	get_tree().create_timer(1.4).timeout.connect(func(): _say(doc_anchor, "doctor_ok", Vector2(40, -90)))
+	get_tree().create_timer(1.4).timeout.connect(func(): _say(doc_anchor, "doctor_twice" if crashed else "doctor_ok", Vector2(40, -90)))
 	get_tree().create_timer(5.0).timeout.connect(func():
 		bro.set_mood("angry")
 		bro.say("hosp_bro"))
@@ -89,17 +177,19 @@ func _enter_room() -> void:
 
 func _show_panel() -> void:
 	var panel := PanelContainer.new()
-	panel.position = Vector2(330, 568)
-	panel.custom_minimum_size = Vector2(620, 0)
+	panel.position = Vector2(270, 560)
+	panel.custom_minimum_size = Vector2(740, 0)
 	ui.add_child(panel)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	panel.add_child(v)
-	var d := Game.make_label("Diagnosis: " + Game.hospital_cause, 24, Color("#ff9a9a"))
+	var cause := Game.hospital_cause + (" + an ambulance crash" if crashed else "")
+	var d := Game.make_label("Diagnosis: " + cause, 24, Color("#ff9a9a"))
 	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.custom_minimum_size = Vector2(700, 0)  # wrap width known up front, so the height is right
 	v.add_child(d)
-	var c := Game.make_label("Hospital trips discovered: %d / 10" % Game.injuries.size(), 22, Color("#ffde3b"))
+	var c := Game.make_label("Hospital trips discovered: %d / 10" % Game.injury_count(), 22, Color("#ffde3b"))
 	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(c)
 	var h := HBoxContainer.new()
@@ -120,11 +210,22 @@ func _show_panel() -> void:
 			Game.sfx("click")
 			Game.goto(Game.hospital_from))
 		h.add_child(again)
+	# grow upward from the bottom edge so long diagnoses never push the buttons off-screen
+	panel.modulate.a = 0.0
+	await get_tree().process_frame
+	panel.reset_size()
+	panel.position.y = 712.0 - panel.size.y
+	panel.modulate.a = 1.0
 
 
 func _process(dt: float) -> void:
 	t += dt
-	amb_anchor.position = Vector2(amb_x + 40, 420)
+	amb_anchor.position = Vector2(heli_x, 260) if heli_on else Vector2(amb_x + 40, 420)
+	if crashed and phase == "street":
+		smoke_t -= dt
+		if smoke_t <= 0:
+			smoke_t = 0.12
+			add_child(FX.Burst.new(Vector2(amb_x - 40, 470 + amb_dy), 3, [Color(0.4, 0.4, 0.45, 0.6), Color(0.6, 0.6, 0.65, 0.5)], 90, 22, -60, 1.6, 0.8))
 	if phase == "room":
 		beep_t -= dt
 		if beep_t <= 0:
@@ -159,10 +260,10 @@ func _draw_street() -> void:
 	draw_rect(Rect2(0, 560, 1280, 160), Color("#4a4a55"))
 	for i in 10:
 		draw_rect(Rect2(fmod(i * 160 - t * 0, 1280), 630, 90, 10), Color("#f2e060"))
-	# ambulance
-	var a := Vector2(amb_x, 560)
-	var bounce := sin(t * 30) * 2 if amb_x < 630 else 0.0
-	draw_set_transform(Vector2(0, bounce), 0, Vector2.ONE)
+	# ambulance (drawn in its own rotating frame so it can skid and roll)
+	var a := Vector2.ZERO
+	var bounce := sin(t * 30) * 2 if amb_x < 630 and not crashed else 0.0
+	draw_set_transform_matrix(Transform2D(0, Vector2(0, bounce)) * _amb_xform())
 	FX.rounded_rect(self, Rect2(a + Vector2(-190, -170), Vector2(300, 140)), Color.WHITE, 14, Color("#888"), 3)
 	FX.rounded_rect(self, Rect2(a + Vector2(100, -130), Vector2(110, 100)), Color.WHITE, 14, Color("#888"), 3)
 	draw_rect(Rect2(a + Vector2(130, -118), Vector2(60, 40)), Color("#9fd0f0"))
@@ -176,14 +277,55 @@ func _draw_street() -> void:
 		draw_circle(a + Vector2(-120, -180), 40, Color(1, 0.1, 0.1, 0.25))
 	else:
 		draw_circle(a + Vector2(-60, -180), 40, Color(0.1, 0.3, 1, 0.25))
-	for wx in [-120.0, 130.0]:
-		draw_circle(a + Vector2(wx, -20), 30, Color("#222"))
-		draw_circle(a + Vector2(wx, -20), 12, Color("#bbb"))
+	for w in WHEELS:
+		if crashed and w.x == popped:
+			draw_colored_polygon(FX.ellipse(a + w + Vector2(0, 12), 34, 14), Color("#222"))
+		else:
+			draw_circle(a + w, 30, Color("#222"))
+			draw_circle(a + w, 12, Color("#bbb"))
+			if not crashed and phase == "street":
+				draw_arc(a + w, 38 + sin(t * 6) * 3, 0, TAU, 24, Color(1, 0.9, 0.3, 0.35), 3)
+	if crashed and absf(amb_rot) > 1.0:
+		for k in 3:
+			draw_line(a + Vector2(-150 + k * 110, -150), a + Vector2(-110 + k * 110, -90), Color("#555"), 3)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	if heli_on:
+		_draw_heli()
 	# speed lines
-	if amb_x < 600:
+	if amb_x < 600 and not crashed:
 		for i in 5:
 			draw_line(a + Vector2(-230 - i * 20, -150 + i * 25), a + Vector2(-330 - i * 30, -150 + i * 25), Color(1, 1, 1, 0.7), 4)
+
+
+func _draw_heli() -> void:
+	var h := Vector2(heli_x, 170 + sin(t * 3) * 6)
+	# rope + stretcher
+	var ground_y := 520.0
+	var sy := lerpf(h.y + 60, ground_y, rope)
+	if rope > 0.01 or carrying:
+		draw_line(h + Vector2(-20, 40), Vector2(h.x - 40, sy), Color("#333"), 3)
+		draw_line(h + Vector2(20, 40), Vector2(h.x + 40, sy), Color("#333"), 3)
+		FX.rounded_rect(self, Rect2(Vector2(h.x - 70, sy), Vector2(140, 26)), Color("#f4f4f4"), 6, Color("#e8303a"), 3)
+		if carrying:
+			Bro.draw_head(self, Vector2(h.x - 46, sy - 4), 18, "ko", Vector2.ZERO, false, 0.0, {"t": t, "bandage": 1})
+			draw_rect(Rect2(Vector2(h.x - 28, sy - 6), Vector2(90, 14)), Color("#5a8ad6"))
+	# body
+	draw_line(h + Vector2(60, -10), h + Vector2(200, -24), Color("#d8303a"), 18)
+	draw_circle(h + Vector2(200, -24), 10, Color("#d8303a"))
+	var tr := sin(t * 60) * 22
+	draw_line(h + Vector2(200, -24 - tr), h + Vector2(200, -24 + tr), Color("#222"), 4)
+	draw_colored_polygon(FX.ellipse(h, 90, 48), Color("#e8303a"))
+	draw_colored_polygon(FX.ellipse(h + Vector2(-40, -6), 40, 30), Color("#9fd0f0"))
+	draw_rect(Rect2(h + Vector2(-6, -16), Vector2(12, 34)), Color.WHITE)
+	draw_rect(Rect2(h + Vector2(-17, -5), Vector2(34, 12)), Color.WHITE)
+	draw_line(h + Vector2(-70, 60), h + Vector2(70, 60), Color("#444"), 5)
+	draw_line(h + Vector2(-40, 44), h + Vector2(-40, 60), Color("#444"), 4)
+	draw_line(h + Vector2(40, 44), h + Vector2(40, 60), Color("#444"), 4)
+	# spinning main rotor
+	draw_line(h + Vector2(0, -48), h + Vector2(0, -60), Color("#333"), 6)
+	var rl := absf(sin(t * 25)) * 150 + 30
+	draw_line(h + Vector2(-rl, -60), h + Vector2(rl, -60), Color("#222"), 6)
+	draw_line(h + Vector2(-180, -60), h + Vector2(180, -60), Color(0.2, 0.2, 0.2, 0.15), 10)
 
 
 func _draw_room() -> void:
@@ -198,6 +340,9 @@ func _draw_room() -> void:
 		draw_line(p + Vector2(0, 40), Vector2(1180, 470), Color("#666"), 2)
 		draw_colored_polygon(FX.ellipse(p, 28, 36), [Color("#ff6f86"), Color("#ffde3b"), Color("#5ad1ff")][i])
 	draw_string(ThemeDB.fallback_font, Vector2(1040, 120), "GET WELL", HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color("#e8303a"))
+	if crashed:
+		FX.rounded_rect(self, Rect2(40, 40, 330, 70), Color("#e8303a"), 10)
+		draw_string(ThemeDB.fallback_font, Vector2(60, 90), "HOSPITAL #2", HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color.WHITE)
 	# heart monitor
 	FX.rounded_rect(self, Rect2(880, 260, 220, 150), Color("#222"), 10)
 	draw_rect(Rect2(892, 272, 196, 110), Color("#082010"))
@@ -245,3 +390,9 @@ func _draw_blanket(ci: CanvasItem) -> void:
 	ci.draw_line(Vector2(500, 528), Vector2(900, 528), Color("#f4f4f4"), 14)
 	ci.draw_rect(Rect2(500, 610, 20, 110), Color("#888"))
 	ci.draw_rect(Rect2(880, 610, 20, 110), Color("#888"))
+
+
+## Test hook: 1 = blow a tire right away.
+func debug_state(n: int) -> void:
+	if n == 1:
+		_blowout(WHEELS[1].x)

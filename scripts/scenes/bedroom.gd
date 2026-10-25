@@ -55,7 +55,7 @@ func setup() -> void:
 	col.position = Vector2(1000, 120)
 	col.add_theme_constant_override("separation", 8)
 	hud.add_child(col)
-	for t in [["black", "Black Marker"], ["red", "Red Marker"], ["mustache", "Mustache"],
+	for t in [["black", "Black Pen"], ["red", "Red Marker"], ["mustache", "Mustache"],
 			["glasses", "Glasses"], ["whiskers", "Whiskers"], ["unibrow", "Unibrow"]]:
 		var b := Button.new()
 		b.text = t[1]
@@ -129,7 +129,7 @@ func _unhandled_input(e: InputEvent) -> void:
 					Game.sfx("squeak", 0.2, -6)
 			else:
 				drawing = true
-				cur = {"pts": PackedVector2Array(), "col": Color("#16131c") if tool == "black" else Color("#e0202a"), "w": 0.045}
+				cur = {"pts": PackedVector2Array(), "col": Color("#16131c") if tool == "black" else Color("#e0202a"), "w": 0.022 if tool == "black" else 0.045}
 				strokes.append(cur)
 				_add_point(e.position)
 		else:
@@ -238,7 +238,7 @@ func _scratch_eyes(at: Vector2) -> void:
 	wash_btn.visible = false
 	get_tree().create_timer(2.6).timeout.connect(func(): bro.say("scream"))
 	get_tree().create_timer(4.6).timeout.connect(func(): bro.say("myeyes"))
-	injure("Scratched eyes with a marker", 6.0)
+	injure("Scratched eyes with a pen" if tool == "black" else "Scratched eyes with a marker", 6.0)
 
 
 func _new_night() -> void:
@@ -323,8 +323,17 @@ func _draw() -> void:
 		Bro.draw_head(self, Vector2.ZERO, 70, mood, Vector2.ZERO, false, rage / 100.0, {"t": time})
 		_draw_ink(Vector2.ZERO, 70, 1.0)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	# marker cursor
-	if state == "sleep":
+	# pen / marker cursor
+	if injured or tool in STAMPS:
+		pass
+	elif tool == "black":
+		draw_set_transform(mouse, -0.6, Vector2.ONE)
+		rrect(Rect2(-6, -96, 12, 84), Color("#1e2a5a"), 5)
+		draw_rect(Rect2(4, -92, 4, 36), Color("#c0c0c8"))
+		draw_colored_polygon(PackedVector2Array([Vector2(-6, -12), Vector2(6, -12), Vector2(0, 4)]), Color("#d8c8a0"))
+		draw_circle(Vector2(0, 2), 2, Color("#16131c"))
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	else:
 		draw_set_transform(mouse, -0.6, Vector2.ONE)
 		rrect(Rect2(-9, -90, 18, 80), Color("#2a2a35"), 6)
 		draw_colored_polygon(PackedVector2Array([Vector2(-9, -10), Vector2(9, -10), Vector2(0, 4)]),

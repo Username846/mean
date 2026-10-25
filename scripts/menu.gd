@@ -16,7 +16,7 @@ func _ready() -> void:
 	head.position = Vector2(0, 14)
 	add_child(head)
 	var info := Game.make_label("Mean points: %d    Rank: %s    Stars: %d/10    Hospital trips: %d/10" % [
-		Game.total_mean, Game.rank_title(), Game.star_count(), Game.injuries.size()], 22)
+		Game.total_mean, Game.rank_title(), Game.star_count(), Game.injury_count()], 22)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.size = Vector2(1280, 30)
 	info.position = Vector2(0, 66)
@@ -217,18 +217,17 @@ static func draw_icon(ci: CanvasItem, id: String, c: Vector2, t: float) -> void:
 				ci.draw_circle(c + Vector2(s * 58, -34 + bob), 12, Color("#ff5a3a"))
 				ci.draw_circle(c + Vector2(s * 12, -14), 7, Color.WHITE)
 				ci.draw_circle(c + Vector2(s * 12, -14), 3, ink)
-		"attic":
-			var p := c + Vector2(0, bob)
-			var pts := PackedVector2Array()
-			for i in 13:
-				var a := lerpf(PI, TAU, i / 12.0)
-				pts.append(p + Vector2(cos(a) * 40, sin(a) * 40 - 6))
-			for i in 7:
-				pts.append(p + Vector2(40 - i * 13.3, 44 + (8 if i % 2 == 0 else -4)))
-			ci.draw_colored_polygon(pts, Color("#f2f0ff"))
-			ci.draw_colored_polygon(FX.ellipse(p + Vector2(-14, -10), 7, 10), ink)
-			ci.draw_colored_polygon(FX.ellipse(p + Vector2(14, -10), 7, 10), ink)
-			ci.draw_colored_polygon(FX.ellipse(p + Vector2(0, 16), 10, 12), ink)
+		"treehouse":
+			ci.draw_rect(Rect2(c + Vector2(-12, -10), Vector2(24, 70)), Color("#7a4a2a"))
+			ci.draw_circle(c + Vector2(-30, -40), 34, Color("#3f9a3a"))
+			ci.draw_circle(c + Vector2(30, -44), 34, Color("#4caf45"))
+			ci.draw_rect(Rect2(c + Vector2(-40, -20 + bob * 0.3), Vector2(70, 40)), Color("#c98d55"))
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(-48, -20 + bob * 0.3), c + Vector2(38, -20 + bob * 0.3), c + Vector2(-5, -50 + bob * 0.3)]), Color("#b5482f"))
+			ci.draw_rect(Rect2(c + Vector2(-20, -10 + bob * 0.3), Vector2(18, 16)), Color("#8fd3ff"))
+			for k in 4:
+				ci.draw_line(c + Vector2(30, 20 + k * 12), c + Vector2(48, 20 + k * 12), Color("#e0c080"), 3)
+			ci.draw_line(c + Vector2(30, 20), c + Vector2(30, 64), Color("#e0c080"), 3)
+			ci.draw_line(c + Vector2(48, 20), c + Vector2(48, 64), Color("#e0c080"), 3)
 		"carnival":
 			for i in 4:
 				ci.draw_circle(c, 50 - i * 12, Color("#ff5a4f") if i % 2 == 0 else Color.WHITE)

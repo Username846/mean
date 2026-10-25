@@ -134,8 +134,8 @@ func _bite() -> void:
 
 func _react() -> void:
 	state = "react"
-	if "sardine" in layers:
-		_allergy()
+	if layers.count("hotsauce") >= 2:
+		_choke()
 		return
 	var gross := 0
 	var hot := 0
@@ -177,16 +177,23 @@ func _react() -> void:
 	get_tree().create_timer(3.5).timeout.connect(_reset)
 
 
-func _allergy() -> void:
-	bro.set_mood("gross")
-	bro.say("cantbreathe")
-	bro.flail(3.0)
-	Game.sfx("choke", 0.0)
-	injure("Severe sardine allergy", 5.0)
-	var tw := create_tween()
-	tw.tween_property(bro, "puff", 1.0, 2.6).set_trans(Tween.TRANS_SINE)
-	get_tree().create_timer(1.7).timeout.connect(func(): Game.sfx("choke", 0.0, 0, 0.85))
-	get_tree().create_timer(3.2).timeout.connect(func():
+## Two or more ghost pepper sauces: he screams for water, then chokes.
+func _choke() -> void:
+	var mouth := bro.head_pos() + Vector2(0, 25)
+	bro.set_mood("hot")
+	bro.say("water")
+	bro.flail(4.0)
+	Game.sfx("fire")
+	injure("Choked on a double ghost pepper sandwich", 6.0)
+	for k in 6:
+		get_tree().create_timer(k * 0.25).timeout.connect(func():
+			burst(mouth, 30, [Color("#ff3a10"), Color("#ffb020"), Color("#ffe060")], 500, 9, -100, 0.7, 0.8, PI))
+	get_tree().create_timer(2.2).timeout.connect(func():
+		bro.set_mood("gross")
+		bro.say("choking")
+		Game.sfx("choke", 0.0))
+	get_tree().create_timer(3.6).timeout.connect(func(): Game.sfx("choke", 0.0, 0, 0.85))
+	get_tree().create_timer(4.4).timeout.connect(func():
 		bro.set_mood("ko")
 		bro.fall_over(-1.0, 0.0)
 		Game.sfx("thud", 0.0)
@@ -359,5 +366,5 @@ func _enter_tree() -> void:
 
 ## Test hook: triggers this location's hospital accident.
 func debug_injure() -> void:
-	layers = ["sardine", "cheese"]
+	layers = ["hotsauce", "hotsauce", "cheese"]
 	_react()

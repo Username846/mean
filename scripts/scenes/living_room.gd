@@ -34,10 +34,11 @@ var cushion := Vector2(-200, FLOOR)
 var cushion_squash := 0.0
 var cushion_cd := 0.0
 var tool_buttons := {}
-var shocked := 0.0
-var hair_up_ragdoll := 0.0
-var tv_broken := false
-const TV_RECT := Rect2(950, 330, 260, 180)
+const BANGS_TO_KO := 7
+var bangs := 0               ## hard smashes so far; too many cracks his skull
+var skull_cracked := false
+var bleed := Vector2.ZERO    ## where the blood puddle spreads (once he settles)
+var bleed_size := 0.0
 
 
 func _init() -> void:
@@ -306,29 +307,35 @@ func _impact(i: int, speed: float) -> void:
 	var big := speed > 1900
 	Game.sfx("thud" if big else "bonk", 0.15)
 	shake(10.0 if big else 4.0)
-	bro.set_mood("hurt", 1.2)
 	add_rage(clampf(speed / 300.0, 2.0, 9.0), pos[i], "SMACK!" if big else "BONK")
 	burst(pos[i], 10, [Color(1, 1, 1, 0.8), Color("#ffde3b")], 250, 5, 600, 0.5)
+	bangs += 1
+	if bangs >= BANGS_TO_KO:
+		_skull_crack(i)
+		return
+	if bangs >= BANGS_TO_KO - 3:
+		# warning signs: he's getting woozy
+		bro.set_mood("dizzy", 2.5)
+		bro.say(["dizzy", "ow", "stop"].pick_random(), false)
+		return
+	bro.set_mood("hurt", 1.2)
 	if randf() < 0.6:
 		bro.say(["ow", "ouch", "oof", "notfunny", "mom", "telling"].pick_random(), false)
 
 
-func _electrocute() -> void:
-	tv_broken = true
-	shocked = 2.2
+## Smashed into the walls too many times: knocked out cold, skull cracked.
+func _skull_crack(i: int) -> void:
+	skull_cracked = true
 	stun = 1e9
 	stand = 0.0
-	hair_up_ragdoll = 1.0
-	for i in pos.size():
-		prev[i] = pos[i] + Vector2(6, 2)
-	Game.sfx("zap", 0.0)
-	Game.sfx("crash", 0.0, -6)
+	Game.sfx("crack", 0.0)
+	Game.sfx("thud", 0.0)
 	shake(16)
-	bro.set_mood("scared")
-	bro.say("zapped")
-	burst(TV_RECT.get_center(), 50, [Color("#fff36a"), Color("#8ae0ff"), Color.WHITE], 600, 5, 700, 1.0)
-	get_tree().create_timer(2.2).timeout.connect(func(): bro.set_mood("ko"))
-	injure("Electrocuted by the TV", 4.0)
+	bro.set_mood("hurt")
+	bro.say("aaah")
+	burst(pos[i], 24, [Color("#ffe14a"), Color.WHITE, Color("#c0101e")], 350, 6, 800, 0.8)
+	get_tree().create_timer(1.0).timeout.connect(func(): bro.set_mood("ko"))
+	injure("Cracked skull from too many wall smashes", 5.0)
 
 
 func _update_balls(dt: float) -> void:
@@ -404,14 +411,12 @@ func tick(dt: float) -> void:
 	if tickle > 0.2:
 		for i in [LHA, RHA, LFT, RFT]:
 			prev[i] += Vector2(randf_range(-2.5, 2.5), randf_range(-2.5, 2.5))
-	# thrown into the TV: electrocuted
-	shocked = maxf(0.0, shocked - dt)
-	if not injured and grabbed < 0:
-		for i in [HEAD, NECK, PELVIS]:
-			var spd := (pos[i] - prev[i]).length() * 60.0 * SUB
-			if TV_RECT.grow(RADII[i] * 0.5).has_point(pos[i]) and spd > 500.0:
-				_electrocute()
-				break
+	# bleeding once he comes to rest on the floor
+	if skull_cracked:
+		if bleed == Vector2.ZERO and pos[HEAD].y > FLOOR - 80 and (pos[HEAD] - prev[HEAD]).length() < 1.0:
+			bleed = Vector2(pos[HEAD].x, FLOOR - 4)
+		if bleed != Vector2.ZERO:
+			bleed_size = minf(110.0, bleed_size + dt * 45.0)
 	# whoopee cushion
 	if cushion.x > 0 and cushion_cd <= 0 and not injured:
 		var squashed := false
@@ -459,18 +464,9 @@ func _draw() -> void:
 	# TV
 	draw_rect(Rect2(960, 520, 240, 120), Color("#6b4428"))
 	rrect(Rect2(950, 330, 260, 180), Color("#222"), 14)
-	if tv_broken:
-		draw_rect(Rect2(966, 346, 228, 148), Color("#111"))
-		var c := Vector2(1060, 410)
-		for k in 7:
-			var a := k * 0.9 + 0.3
-			draw_polyline(PackedVector2Array([c, c + Vector2.from_angle(a) * 50 + Vector2(10, -8), c + Vector2.from_angle(a) * 110]), Color("#ccc"), 2)
-		if randf() < 0.3:
-			draw_line(c, c + Vector2(randf_range(-60, 60), randf_range(-40, 40)), Color("#fff36a"), 3)
-	else:
-		var tvc := Color.from_hsv(fmod(time * 0.1, 1.0), 0.5, 0.9)
-		draw_rect(Rect2(966, 346, 228, 148), tvc)
-		draw_circle(Vector2(1080, 420 + sin(time * 3) * 20), 24, tvc.inverted())
+	var tvc := Color.from_hsv(fmod(time * 0.1, 1.0), 0.5, 0.9)
+	draw_rect(Rect2(966, 346, 228, 148), tvc)
+	draw_circle(Vector2(1080, 420 + sin(time * 3) * 20), 24, tvc.inverted())
 	# lamp
 	draw_line(Vector2(860, FLOOR), Vector2(860, 380), Color("#444"), 6)
 	draw_colored_polygon(PackedVector2Array([Vector2(820, 380), Vector2(900, 380), Vector2(880, 320), Vector2(840, 320)]), Color("#ffb347"))
@@ -486,6 +482,9 @@ func _draw() -> void:
 		ellipse(cushion + Vector2(0, -16 * sq), 56, 18 * sq + 4, Color("#ff6f86"))
 		ellipse(cushion + Vector2(-50, -12 * sq), 10, 7, Color("#e04a6a"))
 		draw_circle(cushion + Vector2(10, -24 * sq), 6, Color(1, 1, 1, 0.5))
+	if bleed_size > 1.0:
+		ellipse(bleed, bleed_size, bleed_size * 0.22, Color("#b0101e"))
+		ellipse(bleed + Vector2(-bleed_size * 0.3, -2), bleed_size * 0.3, bleed_size * 0.05, Color(1, 0.5, 0.5, 0.45))
 	_draw_ragdoll()
 	for b in balls:
 		draw_circle(b.p, b.r, b.c)
@@ -519,17 +518,11 @@ func _draw_ragdoll() -> void:
 		draw_circle(pos[arm[1]], 14, skin)
 	var up := (pos[HEAD] - pos[NECK])
 	draw_set_transform(pos[HEAD], up.angle() + PI / 2, Vector2.ONE)
-	Bro.draw_head(self, Vector2.ZERO, 48, bro.mood, bro.look, bro._blink > 0, red, {"t": time, "hair_up": hair_up_ragdoll})
+	Bro.draw_head(self, Vector2.ZERO, 48, bro.mood, bro.look, bro._blink > 0, red, {"t": time})
+	if skull_cracked:
+		draw_polyline(PackedVector2Array([Vector2(-10, -50), Vector2(4, -36), Vector2(-6, -24), Vector2(10, -12)]), Color("#5a1010"), 4)
+		draw_line(Vector2(10, -12), Vector2(12, 6), Color("#c0101e"), 5)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	if shocked > 0:
-		# crackling electricity all over him
-		for k in 6:
-			var a: Vector2 = pos[randi() % pos.size()]
-			var b: Vector2 = pos[randi() % pos.size()]
-			var pts := PackedVector2Array()
-			for j in 7:
-				pts.append(a.lerp(b, j / 6.0) + Vector2(randf_range(-18, 18), randf_range(-18, 18)))
-			draw_polyline(pts, Color("#fff36a") if k % 2 == 0 else Color("#8ae0ff"), 4)
 
 
 func _draw_cursor() -> void:
@@ -560,4 +553,5 @@ func _draw_cursor() -> void:
 
 ## Test hook: triggers this location's hospital accident.
 func debug_injure() -> void:
-	_electrocute()
+	bangs = BANGS_TO_KO - 1
+	_impact(HEAD, 2000.0)

@@ -21,6 +21,7 @@ var gull_t := 6.0
 var anchor: Node2D
 var tool_buttons := {}
 var face_water := 0
+var drowned := false         ## passed out: no more struggling
 
 
 func _init() -> void:
@@ -162,6 +163,7 @@ func _drown() -> void:
 	shake(8)
 	injure("Nearly drowned by sea water while buried", 4.5)
 	get_tree().create_timer(2.4).timeout.connect(func():
+		drowned = true
 		bro.set_mood("ko")
 		Game.sfx("choke", 0.0, -4, 0.8))
 
@@ -186,7 +188,8 @@ func tick(dt: float) -> void:
 	# struggling
 	if buried > 0:
 		buried -= dt
-		bro.flail(0.1)
+		if not drowned:
+			bro.flail(0.1)
 		if buried <= 0:
 			face_water = 0
 			for i in 3:

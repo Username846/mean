@@ -110,24 +110,27 @@ def fart(seed, dur, base, squeak=0.0, sputter=0.3, wet=0.5):
         if in_tail and rng_.random() < 0.35:
             i += int(period * rng_.integers(1, 4))  # sputter: skipped flaps
             continue
-        w = int(period * rng_.uniform(0.35, 0.55))
+        # short flap with an abrupt close: rich in upper harmonics ("rippy")
+        w = max(4, int(period * rng_.uniform(0.15, 0.28)))
         k = np.arange(w)
-        pulse = np.sin(np.pi * k / w) ** 2 * (1 - k / w * 0.6)
+        pulse = np.sin(0.5 * np.pi * k / w) ** 2
         j = min(n, i + w)
         exc[i:j] += pulse[: j - i] * amp[i] * rng_.uniform(0.75, 1.0)
         i += int(period)
     exc -= lowpass(exc, 0.01)  # remove DC thump
-    body = resonator(exc, 210, 0.985) * 1.0 + resonator(exc, 480, 0.97) * 0.9 + resonator(exc, 1100, 0.94) * 0.35 * (0.5 + wet)
-    air = lowpass(rng_.uniform(-1, 1, n), 0.18) * amp * 0.06
+    body = resonator(exc, 340, 0.98) * 0.6 + resonator(exc, 720, 0.97) * 1.0 + resonator(exc, 1500, 0.94) * 0.45 * (0.5 + wet)
+    for _ in range(2):  # 2nd-order high-pass around 300 Hz: keeps it rippy, not boomy
+        body -= lowpass(body, 0.045)
+    air = (lowpass(rng_.uniform(-1, 1, n), 0.25) - lowpass(rng_.uniform(-1, 1, n), 0.04)) * amp * 0.08
     crackle = (rng_.random(n) > 0.9993).astype(float) * rng_.uniform(-1, 1, n)
     crackle = lowpass(crackle, 0.3) * (t > dur * (1 - sputter)) * 3 * wet
     out = body / (np.max(np.abs(body)) + 1e-9) + air + crackle
     return lowpass(out, 0.5)
 
 
-S["fart"] = fart(3, 1.15, 92, squeak=0.25, sputter=0.3)
-S["fart2"] = fart(11, 0.6, 150, squeak=0.6, sputter=0.2, wet=0.3)
-S["fart3"] = fart(29, 1.7, 68, squeak=0.1, sputter=0.45, wet=0.8)
+S["fart"] = fart(3, 1.15, 135, squeak=0.25, sputter=0.3)
+S["fart2"] = fart(11, 0.6, 200, squeak=0.6, sputter=0.2, wet=0.3)
+S["fart3"] = fart(29, 1.6, 110, squeak=0.1, sputter=0.45, wet=0.8)
 S["tickle"] = cat(*[sweep(1200 + 200 * (i % 3), 1600, 0.05) * env_exp(0.05, 40)
                    for i in range(10)])
 S["squeak"] = sweep(1800, 2400, 0.12) * env_exp(0.12, 10) * 0.4
@@ -192,6 +195,17 @@ S["choke"] = lowpass(noise(1.6), 0.06) * 4 * (0.5 + 0.5 * np.sign(np.sin(2 * np.
 S["beep"] = tone("sine", 95, 0.13, 0.6, d=0.02, s=1.0, r=0.02)
 S["crash"] = mixs(kick(1.0), lowpass(noise(1.2), 0.4) * env_exp(1.2, 4) * 1.5, clang(900) * 0.4,
                   np.pad(clang(1300), (int(0.12 * SR), 0)) * 0.3)
+
+_t = t_(1.0)
+S["tirepop"] = mixs(noise(0.3) * env_exp(0.3, 25) * 2, kick(1.0), sweep(900, 200, 0.3) * env_exp(0.3, 12) * 0.4)
+S["skid"] = (np.sin(2 * np.pi * np.cumsum(2300 + 300 * np.sin(2 * np.pi * 9 * _t) + rng.normal(0, 200, len(_t))) / SR) * 0.4
+             + (noise(1.0) - lowpass(noise(1.0), 0.3)) * 0.5) * np.minimum(1, (1.0 - _t) * 4) * np.minimum(1, _t * 20)
+_t = t_(3.0)
+S["rotor"] = lowpass(noise(3.0), 0.08) * 5 * (0.25 + 0.75 * np.maximum(0, np.sin(2 * np.pi * 11 * _t)) ** 4) \
+    + sweep(110, 110, 3.0, "square") * 0.06
+S["snip"] = cat(noise(0.03) * 0.8, silence(0.04), sweep(3000, 2200, 0.05, "square") * 0.3 * env_exp(0.05, 50))
+S["chitter"] = cat(*[sweep(2600, 3400, 0.04, "tri") * env_exp(0.04, 40) * 0.5 for _ in range(9)])
+S["rustle"] = lowpass(noise(0.7), 0.45) * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 6 * t_(0.7)))) * np.sin(np.pi * t_(0.7) / 0.7)
 
 if __name__ == "__main__":
     for name, data in S.items():
