@@ -58,7 +58,6 @@ const LINES := {
 	"relax": ["bro", "Ahh... finally some peace and quiet."],
 	"splashed": ["bro", "Ack! SALTY!"],
 	"treehouse": ["bro", "This is MY treehouse! No little siblings allowed!"],
-	"stranded": ["bro", "HEY! How am I supposed to get down now?!"],
 	"squirrel": ["bro", "AAAH! SQUIRREL! Get it OFF me!"],
 	"snack": ["bro", "Snack time!"],
 	"comics": ["bro", "Hey! My COMICS!"],

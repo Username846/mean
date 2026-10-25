@@ -203,7 +203,6 @@ S["skid"] = (np.sin(2 * np.pi * np.cumsum(2300 + 300 * np.sin(2 * np.pi * 9 * _t
 _t = t_(3.0)
 S["rotor"] = lowpass(noise(3.0), 0.08) * 5 * (0.25 + 0.75 * np.maximum(0, np.sin(2 * np.pi * 11 * _t)) ** 4) \
     + sweep(110, 110, 3.0, "square") * 0.06
-S["snip"] = cat(noise(0.03) * 0.8, silence(0.04), sweep(3000, 2200, 0.05, "square") * 0.3 * env_exp(0.05, 50))
 S["chitter"] = cat(*[sweep(2600, 3400, 0.04, "tri") * env_exp(0.04, 40) * 0.5 for _ in range(9)])
 S["rustle"] = lowpass(noise(0.7), 0.45) * (0.5 + 0.5 * np.abs(np.sin(2 * np.pi * 6 * t_(0.7)))) * np.sin(np.pi * t_(0.7) / 0.7)
 

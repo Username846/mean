@@ -1,7 +1,7 @@
 extends "res://scripts/minigame.gd"
 ## Treehouse: Bro reads comics up in his treehouse and climbs down the rope
-## ladder for snacks. Shake the tree, pelt him with pinecones, send a squirrel
-## up after him, or cut the ladder (stranding him... or worse, mid-climb).
+## ladder for snacks. Shake the tree, pelt him with acorns, or send a squirrel
+## up after him. An acorn while he's on the ladder knocks him off it.
 
 const GROUND := 640.0
 const PLAT_Y := 330.0
@@ -10,17 +10,15 @@ const READ_X := 760.0
 const COOLER_X := 1060.0
 const SQ_HOME := Vector2(455, 632)
 const SC := 0.62
-const TOOLS := [["tree_shake", "Shake Tree"], ["pinecone", "Pinecones"], ["squirrel", "Squirrel"], ["scissors", "Scissors"]]
+const TOOLS := [["tree_shake", "Shake Tree"], ["acorn", "Acorns"], ["squirrel", "Squirrel"]]
 
 var tool := "tree_shake"
 var tool_buttons := {}
-var state := "read"   # read, down, walk_out, snack, walk_back, up, stuck_top, stuck_ground, fall
+var state := "read"   # read, down, walk_out, snack, walk_back, up, fall
 var state_t := 8.0
 var tree_shake := 0.0
 var shake_cd := 0.0
-var ladder_ok := true
-var ladder_drop := 0.0
-var cones: Array = []
+var acorns: Array = []
 var sq := {"p": SQ_HOME, "mode": "idle", "t": 0.0}
 var sq_cd := 0.0
 var mouse := Vector2.ZERO
@@ -84,21 +82,18 @@ func _unhandled_input(e: InputEvent) -> void:
 		"tree_shake":
 			if Rect2(380, 60, 480, 590).has_point(e.position):
 				_shake_tree()
-		"pinecone":
-			cones.append({"from": Vector2(640 + randf_range(-40, 40), 760), "to": e.position, "t": 0.0})
+		"acorn":
+			acorns.append({"from": Vector2(640 + randf_range(-40, 40), 760), "to": e.position, "t": 0.0})
 			Game.sfx("throw", 0.2)
 		"squirrel":
 			_send_squirrel()
-		"scissors":
-			if ladder_ok and absf(e.position.x - LADDER_X) < 40 and e.position.y > PLAT_Y and e.position.y < GROUND:
-				_cut_ladder()
 
 
 func _shake_tree() -> void:
 	tree_shake = minf(1.5, tree_shake + 0.4)
 	Game.sfx("rustle", 0.2)
 	burst(Vector2(randf_range(420, 720), randf_range(80, 200)), 8, [Color("#3f9a3a"), Color("#6cc05a")], 200, 6, 300, 1.4)
-	if tree_shake > 0.9 and shake_cd <= 0 and state in ["read", "down", "up", "stuck_top"]:
+	if tree_shake > 0.9 and shake_cd <= 0 and state in ["read", "down", "up"]:
 		shake_cd = 1.2
 		bro.set_mood("scared", 1.2)
 		bro.flail(0.8)
@@ -119,28 +114,7 @@ func _send_squirrel() -> void:
 	Game.sfx("chitter", 0.1)
 
 
-func _cut_ladder() -> void:
-	Game.sfx("snip", 0.0)
-	ladder_ok = false
-	ladder_drop = 0.0
-	create_tween().tween_property(self, "ladder_drop", 1.0, 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	if _on_ladder():
-		_fall()
-	elif state == "read":
-		state = "stuck_top"
-		state_t = 7.0
-		bro.set_mood("angry")
-		bro.say("stranded")
-		add_rage(9.0, Vector2(LADDER_X, PLAT_Y - 40), "STRANDED!")
-	else:
-		state = "stuck_ground"
-		state_t = 6.0
-		bro.set_mood("angry")
-		bro.say(["ohcomeon", "stranded"].pick_random())
-		add_rage(5.0, Vector2(LADDER_X, GROUND - 120), "LOCKED OUT!")
-
-
-## Ladder cut while he's on it: he falls and breaks his arm.
+## Hit by an acorn while on the ladder: he falls off and breaks his arm.
 func _fall() -> void:
 	state = "fall"
 	bro.set_mood("scared")
@@ -158,12 +132,6 @@ func _fall() -> void:
 		burst(Vector2(bro.position.x, GROUND - 10), 20, [Color("#8a6a3a"), Color("#6cc05a")], 250, 6, 800, 0.8))
 
 
-func _new_ladder() -> void:
-	ladder_ok = true
-	ladder_drop = 0.0
-	Game.sfx("rustle", 0.0)
-
-
 # ------------------------------------------------------------------ update
 
 func tick(dt: float) -> void:
@@ -171,7 +139,7 @@ func tick(dt: float) -> void:
 	shake_cd -= dt
 	sq_cd -= dt
 	var sx := sin(time * 40) * tree_shake * 10.0
-	_update_cones(dt)
+	_update_acorns(dt)
 	_update_squirrel(dt)
 	if state == "fall":
 		return
@@ -180,7 +148,7 @@ func tick(dt: float) -> void:
 	match state:
 		"read":
 			bro.position = Vector2(READ_X + sx, PLAT_Y)
-			if state_t <= 0 and ladder_ok:
+			if state_t <= 0:
 				state = "down"
 				bro.position.x = LADDER_X
 		"down":
@@ -199,7 +167,7 @@ func tick(dt: float) -> void:
 				state = "walk_back"
 		"walk_back":
 			bro.position.x = move_toward(bro.position.x, LADDER_X, 140 * dt)
-			if bro.position.x <= LADDER_X and ladder_ok:
+			if bro.position.x <= LADDER_X:
 				state = "up"
 		"up":
 			bro.position.x = LADDER_X + sx * 0.6
@@ -208,32 +176,27 @@ func tick(dt: float) -> void:
 				state = "read"
 				state_t = randf_range(8.0, 12.0)
 				bro.set_mood("normal")
-		"stuck_top":
-			bro.position = Vector2(READ_X + sx, PLAT_Y)
-			if state_t <= 0:
-				_new_ladder()
-				state = "read"
-				state_t = randf_range(6.0, 9.0)
-				bro.set_mood("smug", 2.0)
-		"stuck_ground":
-			if state_t <= 0:
-				_new_ladder()
-				state = "walk_back"
-	var reading := state in ["read", "stuck_top"]
+	var reading := state == "read"
 	bro.arm_l = -0.5 if reading else (2.6 if state in ["down", "up"] else 0.25)
 	bro.arm_r = bro.arm_l
 	bro.elbow_l = -1.2 if reading else 0.3
 	bro.elbow_r = bro.elbow_l
 
 
-func _update_cones(dt: float) -> void:
-	for c in cones.duplicate():
+func _update_acorns(dt: float) -> void:
+	for c in acorns.duplicate():
 		c.t += dt / 0.38
 		if c.t < 1.0:
 			continue
-		cones.erase(c)
+		acorns.erase(c)
+		if injured:
+			continue
 		var hp := bro.head_pos()
-		if c.to.distance_to(hp) < 48 * SC + 18 and not injured:
+		var on_body := Rect2(-50, -200, 100, 200).has_point(bro.to_local(c.to))
+		if _on_ladder() and (c.to.distance_to(hp) < 48 * SC + 18 or on_body):
+			Game.sfx("bonk", 0.1)
+			_fall()
+		elif c.to.distance_to(hp) < 48 * SC + 18:
 			Game.sfx("bonk", 0.1)
 			bro.set_mood("hurt", 0.8)
 			bro.shake(0.3)
@@ -307,24 +270,20 @@ func _draw() -> void:
 	draw_string(ThemeDB.fallback_font, Vector2(456, 316), "NO SIBLINGS!", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("#5a1010"))
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	# rope ladder
-	if ladder_ok or ladder_drop < 1.0:
-		var top := PLAT_Y + 10 + (ladder_drop * 330.0 if not ladder_ok else 0.0)
-		var bot := minf(GROUND, top + 300)
-		if top < GROUND:
-			var lx := LADDER_X + sx * 0.6
-			draw_line(Vector2(lx - 18, top), Vector2(lx - 18, bot), Color("#c9a060"), 4)
-			draw_line(Vector2(lx + 18, top), Vector2(lx + 18, bot), Color("#c9a060"), 4)
-			var y := top + 20
-			while y < bot:
-				draw_line(Vector2(lx - 18, y), Vector2(lx + 18, y), Color("#a07a40"), 6)
-				y += 34
-	if not ladder_ok and ladder_drop >= 1.0:
-		draw_line(Vector2(LADDER_X - 30, GROUND - 4), Vector2(LADDER_X + 80, GROUND - 10), Color("#c9a060"), 6)
+	var top := PLAT_Y + 10
+	var bot := minf(GROUND, top + 300)
+	var lx := LADDER_X + sx * 0.6
+	draw_line(Vector2(lx - 18, top), Vector2(lx - 18, bot), Color("#c9a060"), 4)
+	draw_line(Vector2(lx + 18, top), Vector2(lx + 18, bot), Color("#c9a060"), 4)
+	var y := top + 20
+	while y < bot:
+		draw_line(Vector2(lx - 18, y), Vector2(lx + 18, y), Color("#a07a40"), 6)
+		y += 34
 
 
 func _foreground(ci: CanvasItem) -> void:
 	# comic book in his hands
-	if state in ["read", "stuck_top"] and not injured:
+	if state == "read" and not injured:
 		var c := bro.position + Vector2(0, -105 * SC)
 		FX.rounded_rect(ci, Rect2(c + Vector2(-26, -18), Vector2(52, 34)), Color("#ff5a4f"), 3)
 		ci.draw_rect(Rect2(c + Vector2(-20, -12), Vector2(18, 12)), Color("#ffde3b"))
@@ -338,17 +297,16 @@ func _foreground(ci: CanvasItem) -> void:
 	ci.draw_circle(p + Vector2(10, -16), 3, Color("#a0602a"))
 	if sq.mode == "idle" and tool == "squirrel":
 		ci.draw_arc(p, 30 + sin(time * 6) * 3, 0, TAU, 24, Color(1, 0.9, 0.3, 0.8), 3)
-	# pinecones
-	for c in cones:
+	# acorns: brown nut under a darker cap with a little stem
+	for c in acorns:
 		var t: float = c.t
 		var q: Vector2 = (c.from as Vector2).lerp(c.to, t) + Vector2(0, -sin(t * PI) * 120)
-		ci.draw_colored_polygon(FX.ellipse(q, lerpf(16, 9, t), lerpf(22, 12, t)), Color("#8a5a2a"))
-		ci.draw_line(q + Vector2(-6, -4), q + Vector2(6, 4), Color("#5a3a1a"), 2)
-	# scissors highlight on the ladder
-	if tool == "scissors" and ladder_ok:
-		ci.draw_rect(Rect2(LADDER_X - 30, PLAT_Y + 10, 60, GROUND - PLAT_Y - 10), Color(1, 0.9, 0.3, 0.12 + 0.08 * sin(time * 5)))
-	var tip := {"tree_shake": "Tap the tree to shake it!", "pinecone": "Tap to throw a pinecone!",
-		"squirrel": "Tap to send the squirrel after him!", "scissors": "Tap the rope ladder to cut it!"}
+		var k := lerpf(1.6, 0.9, t)
+		ci.draw_colored_polygon(FX.ellipse(q + Vector2(0, 3 * k), 8 * k, 10 * k), Color("#b9772f"))
+		ci.draw_colored_polygon(FX.ellipse(q + Vector2(0, -5 * k), 10 * k, 6 * k), Color("#6e4a24"))
+		ci.draw_line(q + Vector2(0, -10 * k), q + Vector2(2 * k, -15 * k), Color("#4a3018"), 2)
+	var tip := {"tree_shake": "Tap the tree to shake it!", "acorn": "Tap to throw an acorn!",
+		"squirrel": "Tap to send the squirrel after him!"}
 	ci.draw_string(ThemeDB.fallback_font, Vector2(760, 694), tip[tool], HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)
 
 
@@ -360,7 +318,7 @@ func _enter_tree() -> void:
 func debug_injure() -> void:
 	state = "down"
 	bro.position = Vector2(LADDER_X, 470)
-	_cut_ladder()
+	_fall()
 
 
 func on_blasted(p: Vector2) -> void:

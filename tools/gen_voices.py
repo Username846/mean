@@ -90,7 +90,6 @@ LINES = {
     "splashed": ("bro", "Ack! Salty!", "Ack! SALTY!"),
     # --- treehouse
     "treehouse": ("bro", "This is my treehouse! No little siblings allowed!", "This is MY treehouse! No little siblings allowed!"),
-    "stranded": ("bro", "Hey! How am I supposed to get down now?", "HEY! How am I supposed to get down now?!"),
     "squirrel": ("bro", "Aaah! Squirrel! Get it off me!", "AAAH! SQUIRREL! Get it OFF me!"),
     "snack": ("bro", "Snack time!", "Snack time!"),
     "comics": ("bro", "Hey! My comics!", "Hey! My COMICS!"),

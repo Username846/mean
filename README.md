@@ -16,7 +16,7 @@ An *Interactive Buddy*-style prank game made in **Godot 4.7.2**. Your big brothe
 | 6 | **Cafeteria** | Build him a disgusting sandwich (ghost pepper sauce, old sock, gummy worms...). He checks the top layer, so hide the gross stuff under some lettuce! |
 | 7 | **Snow Park** | Snowball whack-a-bro. Don't waste throws on the snowmen, and wipe his snowballs off your screen. |
 | 8 | **Beach** | Bury him in sand before the waves wash it away, then bring the crab. |
-| 9 | **Treehouse** | He's reading comics in his treehouse. Shake the tree, pelt him with pinecones, send a squirrel after him, or cut the rope ladder to strand him. |
+| 9 | **Treehouse** | He's reading comics in his treehouse. Shake the tree, pelt him with acorns, or send a squirrel after him. |
 | 10 | **Carnival** | Hit the bullseye with your wobbly aim to drop him into the dunk tank. |
 
 Works on **PC (mouse)** and **phones/tablets (touch)**: tap where you'd click, and drag where you'd drag. Hold your phone sideways. The title screen has a **Fullscreen** button (bottom-left) and a **volume** button (top-right).
@@ -37,7 +37,7 @@ Each location also hides one way to *seriously* hurt him by accident. That sets 
 6. **Cafeteria:** put two or more Ghost Pepper Sauces in his sandwich (with a normal topping on top).
 7. **Snow Park:** pack a rock into your snowball, then hit him with it.
 8. **Beach:** keep pouring sea water on his face while he's buried.
-9. **Treehouse:** cut the rope ladder while he's climbing it.
+9. **Treehouse:** hit him with an acorn while he's climbing up or down the ladder.
 10. **Carnival:** hit the sign above him 4 times.
 
 Bonus: during the ambulance ride, tap one of its wheels.
@@ -48,9 +48,9 @@ Bonus: during the ambulance ride, tap one of its wheels.
 
 ## Audio
 
-* **Synthesized voices:** all 114 voice lines (the brother, you, an announcer, Mom, a paramedic, a doctor and a shady dealer) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
+* **Synthesized voices:** all 113 voice lines (the brother, you, an announcer, Mom, a paramedic, a doctor and a shady dealer) are synthesized with `espeak-ng`. They have speech-bubble subtitles.
 * **Music:** each location has its own procedurally composed chiptune track, plus tracks for the menu, the hospital, the cutscenes and the ending (17 in total).
-* **Sound effects:** 61 procedurally generated sounds (splats, splashes, boings, sirens and, yes, a whoopee cushion).
+* **Sound effects:** 60 procedurally generated sounds (splats, splashes, boings, sirens and, yes, a whoopee cushion).
 
 Audio starts after your first click or tap, because browsers require that. On iPhone, the ring/silent switch has to be on ring to hear web audio. iPhone Safari doesn't support fullscreen for web pages, so the Fullscreen button is hidden there.
 

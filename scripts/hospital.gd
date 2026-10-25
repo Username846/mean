@@ -471,8 +471,6 @@ func _draw_street() -> void:
 		else:
 			draw_circle(a + w, 30, Color("#222"))
 			draw_circle(a + w, 12, Color("#bbb"))
-			if not crashed and phase == "street":
-				draw_arc(a + w, 38 + sin(t * 6) * 3, 0, TAU, 24, Color(1, 0.9, 0.3, 0.35), 3)
 	if crashed and absf(amb_rot) > 1.0:
 		for k in 3:
 			draw_line(a + Vector2(-150 + k * 110, -150), a + Vector2(-110 + k * 110, -90), Color("#555"), 3)
