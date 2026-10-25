@@ -3,6 +3,7 @@ extends "res://scripts/minigame.gd"
 ## possible moment - the closer he is to winning, the madder he gets.
 
 const TV := Rect2(90, 110, 600, 360)
+const BEANBAG_X := 390.0  ## right in front of the TV
 const PLUG := Vector2(780, 590)
 
 var boss_hp := 100.0
@@ -16,9 +17,7 @@ var flash := 0.0
 var heal_msg := 0.0
 var said_almost := false
 var mouse := Vector2.ZERO
-var drag_bro := false
 var tv_fall := 0.0
-var tv_wob := 0.0
 
 
 func _init() -> void:
@@ -34,7 +33,7 @@ func idle_lines() -> Array:
 
 
 func setup() -> void:
-	spawn_bro(Vector2(980, 660), 1.0)
+	spawn_bro(Vector2(BEANBAG_X, 660), 1.0)
 	bro.sitting = true
 	bro.arm_l = -0.6
 	bro.arm_r = -0.6
@@ -54,29 +53,15 @@ func debug_state(n: int) -> void:
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventMouseMotion:
 		mouse = e.position
-		if drag_bro:
-			bro.position.x = clampf(e.position.x, 160.0, 1180.0)
-	if e is InputEventMouseButton and e.button_index == MOUSE_BUTTON_LEFT:
-		if not e.pressed:
-			drag_bro = false
-			return
+	if e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		if TV.grow(16).has_point(e.position):
 			_push_tv()
-		elif Rect2(bro.position.x - 80, 400, 160, 280).has_point(e.position):
-			drag_bro = true
-			Game.sfx("pop")
-			chat(["putmedown", "gaming", "hey"].pick_random())
 		elif e.position.distance_to(PLUG + Vector2(plug_out * 60, 0)) < 70 or Rect2(700, 520, 160, 140).has_point(e.position):
 			_unplug()
 
 
-## Clicking the TV rocks it; if he's sitting right in front, it topples onto him.
+## Clicking the TV topples it onto him (he's sitting right in front of it).
 func _push_tv() -> void:
-	if bro.position.x < TV.position.x - 20 or bro.position.x > TV.end.x + 20:
-		Game.sfx("creak", 0.1, -4)
-		tv_wob = 1.0
-		return
-	drag_bro = false
 	state = "off"
 	static_t = 0.0
 	bro.set_mood("scared")
@@ -122,7 +107,6 @@ func _unplug() -> void:
 
 
 func tick(dt: float) -> void:
-	tv_wob = maxf(0.0, tv_wob - dt * 1.5)
 	if injured:
 		return
 	state_t -= dt
@@ -191,11 +175,8 @@ func _draw() -> void:
 	# TV stand + TV
 	draw_rect(Rect2(60, 470, 660, 110), Color("#3b2a20"))
 	if tv_fall <= 0.0:
-		var piv := Vector2(TV.get_center().x, TV.end.y + 16)
-		draw_set_transform_matrix(Transform2D(sin(time * 25) * 0.04 * tv_wob, piv) * Transform2D(0, -piv))
 		rrect(TV.grow(16), Color("#111"), 16)
 		_draw_screen()
-		draw_set_transform_matrix(Transform2D.IDENTITY)
 	# cord from TV to outlet
 	var plug := PLUG + Vector2(plug_out * 70, plug_out * -10)
 	var pts := PackedVector2Array()
@@ -214,8 +195,8 @@ func _draw() -> void:
 		draw_arc(PLUG, 52 + pulse * 6, 0, TAU, 32, Color(1, 0.9, 0.2, 0.5 + pulse * 0.4), 4)
 		draw_string(ThemeDB.fallback_font, PLUG + Vector2(-48, -62), "PULL ME", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("#ffde3b"))
 	# beanbag
-	ellipse(Vector2(980, 640), 170, 70, Color("#e8a23a"))
-	ellipse(Vector2(980, 610), 140, 60, Color("#f2b450"))
+	ellipse(Vector2(BEANBAG_X, 640), 170, 70, Color("#e8a23a"))
+	ellipse(Vector2(BEANBAG_X, 610), 140, 60, Color("#f2b450"))
 
 
 func _draw_screen() -> void:
@@ -295,5 +276,4 @@ func _enter_tree() -> void:
 
 ## Test hook: triggers this location's hospital accident.
 func debug_injure() -> void:
-	bro.position.x = 400.0
 	_push_tv()

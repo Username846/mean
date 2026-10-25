@@ -33,7 +33,7 @@ Each location also hides one way to *seriously* hurt him by accident. That sets 
 2. **Kitchen:** hit the cupboard right above his head with a pie.
 3. **Backyard:** hit the tree with a balloon while he's standing under it.
 4. **Bedroom:** after he wakes up, draw on his eyes.
-5. **Game Room:** drag him in front of the TV, then click the TV.
+5. **Game Room:** click the TV.
 6. **Cafeteria:** hide sardines in his sandwich.
 7. **Snow Park:** pack a rock into your snowball, then hit him with it.
 8. **Beach:** keep pouring sea water on his face while he's buried.
