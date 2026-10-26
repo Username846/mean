@@ -50,7 +50,7 @@ func _ready() -> void:
 
 
 func _build_empty() -> void:
-	title = Game.make_label("BUG MY BROTHER", 96, Color("#9aa3b5"))
+	title = Game.make_label("I MISS MY BROTHER", 96, Color("#9aa3b5"))
 	title.add_theme_constant_override("outline_size", 22)
 	title.add_theme_color_override("font_outline_color", Color("#1c1f2a"))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
