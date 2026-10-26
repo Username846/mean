@@ -42,6 +42,7 @@ var _bubble: Node2D
 var bubble_target: Node2D      ## optional node the speech bubble follows instead of Bro
 var bubble_offset := Vector2.ZERO
 var talk_cooldown := 0.0
+var mute := false               ## never speaks (he's gone, in the gunshot ending)
 var _shake := 0.0
 var _flail := 0.0
 
@@ -75,6 +76,8 @@ func set_mood(m: String, dur := 0.0) -> void:
 
 ## Says a voice line with a speech bubble. Returns false if he was busy talking.
 func say(id: String, force := true) -> bool:
+	if mute:
+		return false
 	if not force and (talk_cooldown > 0 or Game.voice_busy()):
 		return false
 	var info := Game.voice(id)

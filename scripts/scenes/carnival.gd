@@ -243,6 +243,8 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_circle(p, lerpf(26, 14, t), Color("#ffde3b"))
 		ci.draw_arc(p, lerpf(26, 14, t), 0, TAU, 16, Color("#c9a020"), 3)
 	# wobbly crosshair
+	if absent:
+		return
 	ci.draw_arc(aim, 24, 0, TAU, 24, Color(1, 1, 1, 0.9), 3)
 	ci.draw_circle(aim, 4, Color(1, 0.3, 0.3))
 	ci.draw_line(aim + Vector2(-34, 0), aim + Vector2(-16, 0), Color.WHITE, 3)

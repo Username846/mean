@@ -271,7 +271,7 @@ func _draw() -> void:
 
 func _foreground(ci: CanvasItem) -> void:
 	# sunglasses while relaxing
-	if not annoyed:
+	if not annoyed and not absent:
 		var hp := bro.head_pos()
 		for s: int in [-1, 1]:
 			var e := bro.to_global(Vector2(s * 18, -242))
@@ -298,6 +298,8 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_polyline(PackedVector2Array([g + Vector2(-34, -flap), g + Vector2(-12, 0), g, g + Vector2(12, 0), g + Vector2(34, -flap)]), Color("#f4f4f4"), 6)
 		ci.draw_circle(g, 8, Color.WHITE)
 	# tool cursor
+	if absent:
+		return
 	match tool:
 		"shovel":
 			ci.draw_line(mouse + Vector2(30, -60), mouse + Vector2(0, -10), Color("#8a5a3c"), 8)

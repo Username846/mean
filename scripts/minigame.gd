@@ -26,18 +26,44 @@ var blaster_on := false
 var blaster_btn: Button
 var blaster_aim := Vector2(-100, -100)
 var darts: Array = []        ## bullets: {from, to, t, age, hit}
+var absent := false          ## he's gone (gunshot ending): an empty, quiet place
+var _hud_bar: Control
+var _rage_title: Label
 
 
 func _ready() -> void:
+	absent = Game.bro_dead
 	var info := Game.scene_info(scene_id)
-	Game.play_music(scene_id)
+	Game.play_music("grave" if absent else scene_id)
 	_build_hud(info)
 	setup()
 	fx_layer = Node2D.new()
 	fx_layer.z_index = 45
 	add_child(fx_layer)
+	if absent:
+		_leave_empty()
+		return
 	_build_blaster()
 	get_tree().create_timer(0.4).timeout.connect(func(): Game.voice("s_" + scene_id))
+
+
+## He's gone: hide and silence him, put the tools and scoring away, and leave
+## the place still and quiet. Scenes check `absent` to skip anything drawn
+## on or around him.
+func _leave_empty() -> void:
+	if is_instance_valid(bro):
+		bro.visible = false
+		bro.mute = true
+		bro.process_mode = Node.PROCESS_MODE_DISABLED
+	set_process_unhandled_input(false)
+	for c in hud.get_children():
+		if c is CanvasItem and c != _hud_bar and c != hint_label:
+			c.visible = false
+	rage_bar.visible = false
+	_rage_title.visible = false
+	score_label.visible = false
+	hint_label.visible = true
+	set_hint("He isn't here anymore.")
 
 
 ## Override: build the scene.
@@ -68,6 +94,7 @@ func _build_hud(info: Dictionary) -> void:
 	bar.position = Vector2(0, 0)
 	bar.size = Vector2(1280, 56)
 	hud.add_child(bar)
+	_hud_bar = bar
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	bar.add_child(row)
@@ -81,7 +108,8 @@ func _build_hud(info: Dictionary) -> void:
 	var title := Game.make_label(info.get("name", scene_id), 28, info.get("col", Color.WHITE))
 	title.custom_minimum_size = Vector2(250, 0)
 	row.add_child(title)
-	row.add_child(Game.make_label("BRO RAGE", 20, Color("#ff8a8a")))
+	_rage_title = Game.make_label("BRO RAGE", 20, Color("#ff8a8a"))
+	row.add_child(_rage_title)
 	rage_bar = ProgressBar.new()
 	rage_bar.custom_minimum_size = Vector2(330, 30)
 	rage_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -115,7 +143,7 @@ func set_hint(t: String) -> void:
 
 ## Core reward: makes Bro angrier and awards mean points.
 func add_rage(amount: float, pos: Vector2, text := "") -> void:
-	if amount <= 0:
+	if amount <= 0 or absent:
 		return
 	_combo = _combo + 1 if _combo_t > 0 else 1
 	_combo_t = 1.5
@@ -214,7 +242,7 @@ func spawn_bro(pos: Vector2, sc := 1.0) -> Bro:
 ## Starts the "oh no, he's hurt" sequence: locks input, then after `delay`
 ## seconds shows the emergency banner and heads to the hospital cutscene.
 func injure(cause: String, delay := 3.0) -> void:
-	if injured:
+	if injured or absent:
 		return
 	injured = true
 	set_process_unhandled_input(false)
@@ -411,6 +439,9 @@ func idle_lines() -> Array:
 
 func _process(dt: float) -> void:
 	time += dt
+	if absent:
+		queue_redraw()  # the place carries on (clouds, TV...), but nothing happens
+		return
 	_combo_t -= dt
 	if _shake > 0:
 		position = Vector2(randf_range(-_shake, _shake), randf_range(-_shake, _shake))

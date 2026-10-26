@@ -1,5 +1,6 @@
 extends Node2D
 ## The map: pick one of the ten places to bug your brother.
+## After the gunshot ending he's gone: the map is quiet and he never appears.
 
 const Bro = preload("res://scripts/bro.gd")
 const FX = preload("res://scripts/fx.gd")
@@ -9,8 +10,10 @@ var bro: Bro
 
 
 func _ready() -> void:
-	Game.play_music("menu")
-	var head := Game.make_label("Choose a place to bug your brother!", 40, Color("#ffde3b"))
+	var gone := Game.bro_dead
+	Game.play_music("grave" if gone else "menu")
+	var head := Game.make_label("The places you used to bug your brother." if gone
+		else "Choose a place to bug your brother!", 40, Color("#c8ccd6") if gone else Color("#ffde3b"))
 	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.size = Vector2(1280, 50)
 	head.position = Vector2(0, 14)
@@ -47,19 +50,21 @@ func _ready() -> void:
 		else:
 			reset.text = "Really reset?")
 	foot.add_child(reset)
-	if Game.seen_revenge:
+	if Game.seen_revenge and not gone:
 		var rev := Button.new()
 		rev.text = "His Revenge"
 		rev.add_theme_stylebox_override("normal", Game._box(Color("#c01020")))
 		rev.pressed.connect(func(): Game.goto("revenge"))
 		foot.add_child(rev)
-	if Game.star_count() >= 10:
+	if Game.star_count() >= 10 and not gone:
 		var end := Button.new()
 		end.text = "  The Ending  "
 		end.add_theme_stylebox_override("normal", Game._box(Color("#d63bff")))
 		end.pressed.connect(func(): Game.goto("ending"))
 		foot.add_child(end)
 
+	if gone:
+		return
 	bro = Bro.new()
 	bro.position = Vector2(1190, 900)
 	bro.scale = Vector2(0.5, 0.5)
@@ -142,7 +147,8 @@ func _card(s: Dictionary) -> Button:
 
 func _process(dt: float) -> void:
 	t += dt
-	bro.position.y = lerpf(bro.position.y, 795, 0.05)
+	if is_instance_valid(bro):
+		bro.position.y = lerpf(bro.position.y, 795, 0.05)
 	for c in get_children():
 		if c is Button:
 			for k in c.get_children():
@@ -151,8 +157,8 @@ func _process(dt: float) -> void:
 
 
 func _draw() -> void:
-	var top := Color("#2d1b52")
-	var bot := Color("#6b2f7a")
+	var top := Color("#1c1f2a") if Game.bro_dead else Color("#2d1b52")
+	var bot := Color("#3d4250") if Game.bro_dead else Color("#6b2f7a")
 	draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(1280, 0), Vector2(1280, 720), Vector2(0, 720)]),
 		PackedColorArray([top, top, bot, bot]))
 	for i in 40:

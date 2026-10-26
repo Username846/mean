@@ -32,6 +32,7 @@ var hospital_cause := ""
 var hospital_serious := false    ## this trip was the gunshot: he doesn't make it
 var seen_revenge := false        ## his revenge + the night-time pistol purchase
 var has_blaster := false
+var bro_dead := false            ## the gunshot ending: he's gone from the whole game
 
 var music: AudioStreamPlayer
 var voice_player: AudioStreamPlayer
@@ -280,6 +281,7 @@ func save_game() -> void:
 	cf.set_value("game", "injuries", injuries)
 	cf.set_value("game", "seen_revenge", seen_revenge)
 	cf.set_value("game", "has_blaster", has_blaster)
+	cf.set_value("game", "bro_dead", bro_dead)
 	cf.save(SAVE_PATH)
 
 
@@ -295,6 +297,7 @@ func load_game() -> void:
 	injuries = cf.get_value("game", "injuries", {})
 	seen_revenge = cf.get_value("game", "seen_revenge", false)
 	has_blaster = cf.get_value("game", "has_blaster", false)
+	bro_dead = cf.get_value("game", "bro_dead", false)
 
 
 func reset_save() -> void:
@@ -305,6 +308,7 @@ func reset_save() -> void:
 	injuries = {}
 	seen_revenge = false
 	has_blaster = false
+	bro_dead = false
 	save_game()
 
 

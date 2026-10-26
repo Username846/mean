@@ -190,7 +190,7 @@ func _draw() -> void:
 	draw_rect(Rect2(PLUG + Vector2(6, -14), Vector2(6, 16)), Color("#333"))
 	# plug body
 	rrect(Rect2(plug + Vector2(-26, -26), Vector2(52, 52)), Color("#2a2a2a"), 10)
-	if state == "play":
+	if state == "play" and not absent:
 		var pulse := 0.5 + 0.5 * sin(time * 6)
 		draw_arc(PLUG, 52 + pulse * 6, 0, TAU, 32, Color(1, 0.9, 0.2, 0.5 + pulse * 0.4), 4)
 		draw_string(ThemeDB.fallback_font, PLUG + Vector2(-48, -62), "PULL ME", HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color("#ffde3b"))
@@ -200,6 +200,9 @@ func _draw() -> void:
 
 
 func _draw_screen() -> void:
+	if absent:
+		draw_rect(TV, Color("#050505"))  # nobody's playing
+		return
 	if state == "off":
 		if static_t > 0:
 			for i in 160:
@@ -257,6 +260,8 @@ func _foreground(ci: CanvasItem) -> void:
 				var a := k * 1.1
 				ci.draw_polyline(PackedVector2Array([Vector2.ZERO, Vector2.from_angle(a) * 90 + Vector2(12, 8), Vector2.from_angle(a) * 200]), Color("#aaa"), 3)
 		ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		return
+	if absent:
 		return
 	# controller in Bro's hands
 	var c := bro.position + Vector2(0, -95)

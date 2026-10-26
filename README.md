@@ -42,7 +42,7 @@ Each location also hides one way to *seriously* hurt him by accident. That sets 
 
 Bonus: during the ambulance ride, tap one of its wheels.
 
-**After all 10:** he gets his revenge and trashes your room (RIP, LEGO castle). Then you sneak out at night and buy a **9mm pistol** from a shady dealer. From then on, every location has a pistol button in the bottom-right. Equip it and tap him for the Code Red emergency. This time he doesn't make it: the family waits outside surgery, the doctor comes out to say he's sorry, and it ends at his grave.
+**After all 10:** he gets his revenge and trashes your room (RIP, LEGO castle). Then you sneak out at night and buy a **9mm pistol** from a shady dealer. From then on, every location has a pistol button in the bottom-right. Equip it and tap him for the Code Red emergency. This time he doesn't make it: the family waits outside surgery, the doctor comes out to say he's sorry, and it ends at his grave. From then on he's gone for good: the title, the map and all ten places are empty and quiet (only **Reset progress** brings him back).
 
 </details>
 

@@ -1,5 +1,6 @@
 extends Node2D
 ## Title screen. The first click also unlocks web audio.
+## After the gunshot ending he's gone: no brother, dimmer colours, quiet music.
 
 const Bro = preload("res://scripts/bro.gd")
 
@@ -16,6 +17,9 @@ var vol_label: Label
 
 
 func _ready() -> void:
+	if Game.bro_dead:
+		_build_empty()
+		return
 	bro = Bro.new()
 	bro.position = Vector2(640, 640)
 	bro.scale = Vector2(1.25, 1.25)
@@ -38,6 +42,28 @@ func _ready() -> void:
 	sub.position = Vector2(0, 160)
 	add_child(sub)
 	prompt = Game.make_label("Click or tap anywhere to start!", 34)
+	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt.size = Vector2(1280, 50)
+	prompt.position = Vector2(0, 230)
+	add_child(prompt)
+	_build_buttons()
+
+
+func _build_empty() -> void:
+	title = Game.make_label("BUG MY BROTHER", 96, Color("#9aa3b5"))
+	title.add_theme_constant_override("outline_size", 22)
+	title.add_theme_color_override("font_outline_color", Color("#1c1f2a"))
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.size = Vector2(1280, 120)
+	title.position = Vector2(0, 40)
+	title.pivot_offset = Vector2(640, 60)
+	add_child(title)
+	var sub := Game.make_label("10 places. No big brother anymore.", 28, Color("#c8ccd6"))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.size = Vector2(1280, 40)
+	sub.position = Vector2(0, 160)
+	add_child(sub)
+	prompt = Game.make_label("Click or tap anywhere to continue", 34, Color("#c8ccd6"))
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.size = Vector2(1280, 50)
 	prompt.position = Vector2(0, 230)
@@ -143,10 +169,11 @@ func _draw_speaker(ci: Control) -> void:
 
 func _process(dt: float) -> void:
 	t += dt
-	title.rotation = sin(t * 2.0) * 0.03
-	title.scale = Vector2.ONE * (1.0 + sin(t * 3.3) * 0.03)
 	prompt.modulate.a = 0.55 + 0.45 * sin(t * 4.0)
-	bro.look = Vector2(sin(t), 0.2)
+	if is_instance_valid(bro):
+		title.rotation = sin(t * 2.0) * 0.03
+		title.scale = Vector2.ONE * (1.0 + sin(t * 3.3) * 0.03)
+		bro.look = Vector2(sin(t), 0.2)
 	if fs_btn.visible:
 		fs_btn.text = "Exit Fullscreen" if Game.is_fullscreen() else "Fullscreen"
 	queue_redraw()
@@ -160,6 +187,11 @@ func _unhandled_input(e: InputEvent) -> void:
 			vol_panel.visible = false
 			return
 		started = true
+		if Game.bro_dead:
+			Game.play_music("grave")
+			Game.sfx("click")
+			Game.goto("menu")
+			return
 		Game.play_music("menu")
 		Game.voice("title")
 		Game.sfx("powerup", 0.0)
@@ -169,6 +201,13 @@ func _unhandled_input(e: InputEvent) -> void:
 
 
 func _draw() -> void:
+	if Game.bro_dead:
+		var dt := Color("#1c1f2a")
+		var db := Color("#3d4250")
+		draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(1280, 0), Vector2(1280, 720), Vector2(0, 720)]),
+			PackedColorArray([dt, dt, db, db]))
+		draw_rect(Rect2(0, 640, 1280, 80), Color("#15171f"))
+		return
 	var top := Color("#3b2463")
 	var bot := Color("#e2557a")
 	draw_polygon(PackedVector2Array([Vector2(0, 0), Vector2(1280, 0), Vector2(1280, 720), Vector2(0, 720)]),

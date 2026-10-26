@@ -361,12 +361,29 @@ func _show_panel() -> void:
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size = Vector2(700, 0)  # wrap width known up front, so the height is right
 	v.add_child(d)
-	var c := Game.make_label("Hospital trips discovered: %d / 10" % Game.injury_count(), 22, Color("#ffde3b"))
-	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(c)
 	var h := HBoxContainer.new()
 	h.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_theme_constant_override("separation", 16)
+	if phase == "grave":
+		# there's no going back: he stays gone for the rest of the game
+		v.add_child(h)
+		var title := Button.new()
+		title.text = "Return to title"
+		title.pressed.connect(func():
+			Game.sfx("click")
+			Game.bro_dead = true
+			Game.save_game()
+			Game.goto("title"))
+		h.add_child(title)
+		panel.modulate.a = 0.0
+		await get_tree().process_frame
+		panel.reset_size()
+		panel.position.y = 16.0
+		panel.modulate.a = 1.0
+		return
+	var c := Game.make_label("Hospital trips discovered: %d / 10" % Game.injury_count(), 22, Color("#ffde3b"))
+	c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(c)
 	v.add_child(h)
 	var map := Button.new()
 	map.text = "Back to map"
@@ -383,11 +400,10 @@ func _show_panel() -> void:
 			Game.goto(Game.hospital_from))
 		h.add_child(again)
 	# grow upward from the bottom edge so long diagnoses never push the buttons off-screen
-	# (at the grave it sits up in the sky, clear of the family)
 	panel.modulate.a = 0.0
 	await get_tree().process_frame
 	panel.reset_size()
-	panel.position.y = 16.0 if phase == "grave" else 712.0 - panel.size.y
+	panel.position.y = 712.0 - panel.size.y
 	panel.modulate.a = 1.0
 
 

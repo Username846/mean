@@ -485,6 +485,8 @@ func _draw() -> void:
 	if bleed_size > 1.0:
 		ellipse(bleed, bleed_size, bleed_size * 0.22, Color("#b0101e"))
 		ellipse(bleed + Vector2(-bleed_size * 0.3, -2), bleed_size * 0.3, bleed_size * 0.05, Color(1, 0.5, 0.5, 0.45))
+	if absent:
+		return
 	_draw_ragdoll()
 	for b in balls:
 		draw_circle(b.p, b.r, b.c)

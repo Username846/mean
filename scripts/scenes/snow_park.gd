@@ -260,7 +260,7 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_colored_polygon(FX.ellipse(r, 22, 14), Color("#7a7a84"))
 		ci.draw_colored_polygon(FX.ellipse(r + Vector2(-6, -4), 8, 4), Color("#a0a0aa"))
 	# what you're holding
-	if held > 0:
+	if held > 0 and not absent:
 		ci.draw_circle(mouse + Vector2(26, 26), 14, Color.WHITE)
 		ci.draw_arc(mouse + Vector2(26, 26), 14, 0, TAU, 12, Color("#b0c4dc"), 2)
 		if held == 2:
@@ -287,7 +287,8 @@ func _foreground(ci: CanvasItem) -> void:
 			ci.draw_circle(c + Vector2.from_angle(k * 0.7) * r * 0.65, r * 0.42, Color(1, 1, 1, 0.97))
 		ci.draw_circle(c, r * 0.8, Color(1, 1, 1, 0.97))
 		ci.draw_string(ThemeDB.fallback_font, c + Vector2(-50, 8), "click to wipe", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color(0.5, 0.6, 0.75))
-	ci.draw_arc(mouse, 22, 0, TAU, 24, Color(0.9, 0.2, 0.3, 0.8), 3)
+	if not absent:
+		ci.draw_arc(mouse, 22, 0, TAU, 24, Color(0.9, 0.2, 0.3, 0.8), 3)
 
 
 func _enter_tree() -> void:

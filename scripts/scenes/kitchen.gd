@@ -268,6 +268,8 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_circle(Vector2(0, -10), 7, Color("#d42033"))
 		ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	# crosshair
+	if absent:
+		return
 	ci.draw_arc(mouse, 26, 0, TAU, 24, Color(1, 0.2, 0.3, 0.8), 3)
 	ci.draw_line(mouse + Vector2(-34, 0), mouse + Vector2(-14, 0), Color(1, 0.2, 0.3, 0.8), 3)
 	ci.draw_line(mouse + Vector2(34, 0), mouse + Vector2(14, 0), Color(1, 0.2, 0.3, 0.8), 3)

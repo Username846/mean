@@ -283,7 +283,7 @@ func _draw() -> void:
 
 func _foreground(ci: CanvasItem) -> void:
 	# comic book in his hands
-	if state == "read" and not injured:
+	if state == "read" and not injured and not absent:
 		var c := bro.position + Vector2(0, -105 * SC)
 		FX.rounded_rect(ci, Rect2(c + Vector2(-26, -18), Vector2(52, 34)), Color("#ff5a4f"), 3)
 		ci.draw_rect(Rect2(c + Vector2(-20, -12), Vector2(18, 12)), Color("#ffde3b"))
@@ -305,6 +305,8 @@ func _foreground(ci: CanvasItem) -> void:
 		ci.draw_colored_polygon(FX.ellipse(q + Vector2(0, 3 * k), 8 * k, 10 * k), Color("#b9772f"))
 		ci.draw_colored_polygon(FX.ellipse(q + Vector2(0, -5 * k), 10 * k, 6 * k), Color("#6e4a24"))
 		ci.draw_line(q + Vector2(0, -10 * k), q + Vector2(2 * k, -15 * k), Color("#4a3018"), 2)
+	if absent:
+		return
 	var tip := {"tree_shake": "Tap the tree to shake it!", "acorn": "Tap to throw an acorn!",
 		"squirrel": "Tap to send the squirrel after him!"}
 	ci.draw_string(ThemeDB.fallback_font, Vector2(760, 694), tip[tool], HORIZONTAL_ALIGNMENT_LEFT, -1, 22, Color.WHITE)

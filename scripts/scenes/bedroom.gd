@@ -296,14 +296,17 @@ func _draw() -> void:
 	jit += Vector2(sin(time * 17) * 30, cos(time * 13) * 10) * minf(writhe, 1.0)
 	var hc := HC + jit
 	var mood := bro.mood
-	Bro.draw_head(self, hc, R, mood, bro.look * 0.3, false, rage / 100.0 if state == "awake" else 0.0, {"t": time})
-	_draw_ink(hc, R, 1.0)
+	if not absent:
+		Bro.draw_head(self, hc, R, mood, bro.look * 0.3, false, rage / 100.0 if state == "awake" else 0.0, {"t": time})
+		_draw_ink(hc, R, 1.0)
 	# blanket
 	var pts := PackedVector2Array([Vector2(150, 720), Vector2(150, 560), Vector2(330, 520), Vector2(560, 545 + sin(time * 1.4) * 6),
 		Vector2(800, 520), Vector2(970, 560), Vector2(970, 720)])
 	draw_colored_polygon(pts, Color("#ff8fb0"))
 	for i in 6:
 		draw_line(Vector2(190 + i * 140, 560), Vector2(170 + i * 140, 720), Color("#ff6f98"), 6)
+	if absent:
+		return  # just an empty, made bed
 	# noise meter
 	var nr := Rect2(30, 600, 260, 28)
 	rrect(nr.grow(4), Color(0, 0, 0, 0.5), 10)
