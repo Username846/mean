@@ -174,6 +174,8 @@ func injury_count() -> int:
 
 
 func rank_title() -> String:
+	if bro_dead:
+		return "Monster"
 	var ranks := [[0, "Innocent Angel"], [500, "Mildly Annoying"], [2000, "Pesky Sibling"],
 		[5000, "Certified Pest"], [10000, "Prank Master"], [20000, "Chaos Gremlin"],
 		[40000, "LEGENDARY Little Sibling"]]
